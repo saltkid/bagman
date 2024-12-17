@@ -23,12 +23,14 @@
 ---@field path string
 ---@field vertical_align? "Top" | "Middle" | "Bottom"
 ---@field horizontal_align? "Left" | "Center" | "Right"
+---@field object_fit? "contain" | "cover" | "fill" | "none" | "scale-down"
 
 ---An [BagmanDirtyDir] cleaned by setup()
 ---@class BagmanCleanDir config with assigned defaults
 ---@field path string
 ---@field vertical_align "Top" | "Middle" | "Bottom"
 ---@field horizontal_align "Left" | "Center" | "Right"
+---@field object_fit "contain" | "cover" | "fill" | "none" | "scale-down"
 
 ---Holds the local config and state of BGChanger
 ---@class BagmanData
