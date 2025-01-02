@@ -75,9 +75,9 @@ end
 ---@return number height
 function M.contain_dimensions(image_width, image_height, window_width, window_height)
 	if image_width > image_height then
-		return window_width, window_width * math.floor(image_height / image_width)
+		return window_width, math.floor(window_width * image_height / image_width)
 	else
-		return math.floor(image_width / image_height) * window_height, window_height
+		return math.floor(window_height * image_width / image_height), window_height
 	end
 end
 
@@ -94,9 +94,9 @@ end
 ---@return number height
 function M.cover_dimensions(image_width, image_height, window_width, window_height)
 	if image_width > image_height then
-		return image_width * math.floor(window_height / image_height), window_height
+		return math.floor(window_height * image_width / image_height), window_height
 	else
-		return window_width, image_height * math.floor(window_width / image_width)
+		return window_width, math.floor(window_width * image_height / image_width)
 	end
 end
 
