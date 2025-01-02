@@ -42,3 +42,10 @@
 ---@class BagmanState
 ---@field is_looping boolean
 ---@field retries number
+
+---@class BagmanSetImageOptions
+---@field vertical_align? "Top" | "Middle" | "Bottom"
+---@field horizontal_align? "Left" | "Center" | "Right"
+---@field object_fit? "Contain" | "Cover" | "Fill"
+---@field width? number
+---@field height? number

@@ -222,6 +222,13 @@ M.emit = {
 	next_image = function(window)
 		wezterm.emit("bagman.next-image", window)
 	end,
+	-- alias for `wezterm.emit("bagman.set-image", window, image, opts)`
+	---@param window Window used to change the background image
+	---@param image string path to image file
+	---@param opts? BagmanSetImageOptions options to scale and position image
+	set_image = function(window, image, opts)
+		wezterm.emit("bagman.set-image", window, image, opts)
+	end,
 	-- alias for `wezterm.emit("bagman.next-image", window)`
 	---@param window Window used to change the background image
 	start_loop = function(window)
@@ -301,6 +308,43 @@ wezterm.on("bagman.next-image", function(window)
 	end
 
 	set_bg_image(window, image, image_width, image_height, vertical_align, horizontal_align, colors)
+	bagman_data.state.retries = 0
+end)
+
+---Sets a specific image as the background image with options to scale and position it
+---@param window Window used to change the background image
+---@param image string path to image file
+---@param opts? BagmanSetImageOptions options to scale and position image
+wezterm.on("bagman.set-image", function(window, image, opts)
+	opts = opts or {}
+	opts.vertical_align = opts.vertical_align or default.vertical_align
+	opts.horizontal_align = opts.horizontal_align or default.horizontal_align
+	opts.object_fit = opts.object_fit or default.object_fit
+
+	if not opts.width or not opts.height then
+		local image_width, image_height, ok = image_handler.dimensions(image)
+		if not ok then
+			return
+		end
+		local window_dims = window:get_dimensions()
+		opts.width, opts.height = image_handler.resize_image(
+			image_width,
+			image_height,
+			window_dims.pixel_width,
+			window_dims.pixel_height,
+			opts.object_fit
+		)
+	end
+
+	local colors = nil
+	if bagman_data.config.change_tab_colors then
+		---@type Palette
+		colors = {
+			tab_bar = colorscheme_builder.build_tab_bar_colorscheme_from_image(image),
+		}
+	end
+
+	set_bg_image(window, image, opts.width, opts.height, opts.vertical_align, opts.horizontal_align, colors)
 	bagman_data.state.retries = 0
 end)
 
