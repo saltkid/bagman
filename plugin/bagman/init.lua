@@ -5,6 +5,19 @@ local colorscheme_builder = require("bagman.colorscheme-builder") --[[@as ColorS
 ---@class Bagman
 local M = {}
 
+-- OPTION DEFAULTS {{{
+-- defaults for various bagman data
+local default = {
+	interval = 30 * 60,
+	backdrop = "#000000",
+	change_tab_colors = false,
+	is_looping = true,
+	vertical_align = "Middle",
+	horizontal_align = "Center",
+	object_fit = "Contain",
+}
+---}}}
+
 -- STATE VARIABLES {{{
 
 ---Defaults
@@ -15,11 +28,11 @@ local bagman_data = {
 		-- vertical_align and horizontal_align that will be applied to each image found under it.
 		dirs = {},
 		-- Interval in seconds on when to trigger a background change.
-		interval = 30 * 60,
+		interval = default.interval,
 		-- Color Layer below the image. Affects the overall tint of the background due to the top
 		-- image's opacity.
-		backdrop = "#000000",
-		change_tab_colors = false,
+		backdrop = default.backdrop,
+		change_tab_colors = default.change_tab_colors,
 	},
 	state = {
 		-- Whether to immediately start changing bg image every <interval> seconds. You can trigger
@@ -182,24 +195,24 @@ function M.setup(opts)
 		if type(dirty_dir) == "string" then
 			clean_dirs[i] = {
 				path = dirty_dir,
-				vertical_align = "Middle",
-				horizontal_align = "Center",
-				object_fit = "Contain",
+				vertical_align = default.vertical_align,
+				horizontal_align = default.horizontal_align,
+				object_fit = default.object_fit,
 			}
 		else
 			clean_dirs[i] = {
 				path = dirty_dir.path,
-				vertical_align = dirty_dir.vertical_align or "Middle",
-				horizontal_align = dirty_dir.horizontal_align or "Center",
-				object_fit = dirty_dir.object_fit or "Contain",
+				vertical_align = dirty_dir.vertical_align or default.vertical_align,
+				horizontal_align = dirty_dir.horizontal_align or default.horizontal_align,
+				object_fit = dirty_dir.object_fit or default.object_fit,
 			}
 		end
 	end
 	bagman_data.config = {
 		dirs = clean_dirs,
-		interval = opts.interval or bagman_data.config.interval,
-		backdrop = opts.backdrop or bagman_data.config.backdrop,
-		change_tab_colors = opts.change_tab_colors or bagman_data.config.change_tab_colors,
+		interval = opts.interval or default.interval,
+		backdrop = opts.backdrop or default.backdrop,
+		change_tab_colors = opts.change_tab_colors or default.change_tab_colors,
 	}
 	if opts.loop_on_startup then
 		bagman_data.state.is_looping = true
