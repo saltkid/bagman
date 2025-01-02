@@ -20,13 +20,12 @@ function M.exec(opts)
 	elseif M.platform_is("windows") then
 		command = opts.windows or {}
 	else
-		wezterm.log_error("Failed to execute command. Unknown OS:", wezterm.target_triple)
+		wezterm.log_error("BAGMAN CMD ERROR: Failed to execute command. Unknown OS:", wezterm.target_triple)
 		return nil
 	end
 	local success, stdout, stderr = wezterm.run_child_process(command)
 	if not success then
-		wezterm.log_error("Failed to execute command: ", table.concat(command, ""))
-		wezterm.log_error("error:", stderr)
+		wezterm.log_error("BAGMAN CMD ERROR: Failed to execute command: ", table.concat(command, ""), "error:", stderr)
 		return nil
 	end
 	return stdout
@@ -37,12 +36,12 @@ end
 function M.is_executable(opts)
 	if M.platform_is("linux") then
 		if not opts.linux then
-			wezterm.log_error("No command given for linux to execute")
+			wezterm.log_error("BAGMAN CMD ERROR: No command given for linux to execute")
 			return false
 		end
 		local handle = io.popen("which " .. opts.linux .. " 2>/dev/null")
 		if not handle then
-			wezterm.log_error("Failed to execute 'which'")
+			wezterm.log_error("BAGMAN CMD ERROR: Failed to execute 'which'")
 			return false
 		end
 		local result = handle:read("*a")
@@ -50,12 +49,12 @@ function M.is_executable(opts)
 		return result ~= opts.linux .. " not found"
 	elseif M.platform_is("apple") then
 		if not opts.macos then
-			wezterm.log_error("No command given for macos to execute")
+			wezterm.log_error("BAGMAN CMD ERROR: No command given for macos to execute")
 			return false
 		end
 		local handle = io.popen("which " .. opts.macos .. " 2>/dev/null")
 		if not handle then
-			wezterm.log_error("Failed to execute 'which'")
+			wezterm.log_error("BAGMAN CMD ERROR: Failed to execute 'which'")
 			return false
 		end
 		local result = handle:read("*a")
@@ -63,19 +62,19 @@ function M.is_executable(opts)
 		return result ~= opts.macos .. " not found"
 	elseif M.platform_is("windows") then
 		if not opts.windows then
-			wezterm.log_error("No command given for windows to execute")
+			wezterm.log_error("BAGMAN CMD ERROR: No command given for windows to execute")
 			return false
 		end
 		local handle = io.popen("where " .. opts.windows .. " 2>NUL")
 		if not handle then
-			wezterm.log_error("Failed to execute 'where'")
+			wezterm.log_error("BAGMAN CMD ERROR: Failed to execute 'where'")
 			return false
 		end
 		local result = handle:read("*a")
 		handle:close()
 		return result ~= ""
 	else
-		wezterm.log_error("Failed to execute command:", opts.windows, "; unknown OS")
+		wezterm.log_error("BAGMAN CMD ERROR: Failed to execute command:", opts.windows, "; unknown OS")
 		return false
 	end
 end
