@@ -14,9 +14,14 @@ local function directory_exists(path)
 end
 
 local function get_require_path()
-	local path = "httpssCssZssZsgithubsDscomsZssaltkidsZsbagman"
-	local trailing_slash = path .. "sZs"
-	return directory_exists(trailing_slash) and trailing_slash or path
+	local url = "https://github.com/saltkid/bagman"
+	local path = url:gsub("[:/%.]", {
+		[":"] = "sCs",
+		["/"] = "sZs",
+		["."] = "sDs",
+	})
+	local with_trailing_slash = path .. "sZs"
+	return directory_exists(with_trailing_slash) and with_trailing_slash or path
 end
 
 package.path = package.path
