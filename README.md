@@ -130,12 +130,32 @@ Alias for event format: `wezterm.action.EmitEvent("bagman.action-name")`
 | `stop_loop`  | `"bagman.stop-loop"` | stops the current auto cycle bg images loop |
 
 ## List of emitters
-Usage: `bagman.emit.emitter_name(win)` where `win` is a
-[Window object](https://wezfurlong.org/wezterm/config/lua/window/).
+Usage: `bagman.emit.emitter_name(window, ...opts)`
 
-Alias for event format: `wezterm.emit("bagman.emitter-name", win)`
-| action_name | alias for event | description |
-| ----------- | --------- | ----------- |
-| `next_image`  | `"bagman.next-image"` | changes the bg image |
-| `start_loop`  | `"bagman.start-loop"` | starts the auto cycle bg images loop at every user set interval (default: 30) |
-| `stop_loop`  | `"bagman.stop-loop"` | stops the current auto cycle bg images loop |
+Emitters always take a [Window object](https://wezfurlong.org/wezterm/config/lua/window/) with some
+having additional params.
+1. `next_image`
+    - changes the bg image with a random image
+    - alias for: `wezterm.emit("bagman.next-image", window)`
+2. `set_image`
+    - sets a specified image as the bg image 
+    - alias for: `wezterm.emit("bagman.set-image", window, "/path/to/image", {})`
+    - params:
+        - image (required): path to image file 
+        - opts: options to scale and position the image
+            ```lua
+            -- defaults
+            {
+                vertical_align = "Middle",
+                horizontal_align = "Center",
+                object_fit = "Contain",
+                width = --[[ the actual image width ]],
+                height = --[[ the actual image height ]],
+            }
+            ```
+3. `start_loop`
+    - alias for: `wezterm.emit("bagman.start-loop", window)`
+    - starts the auto cycle bg images loop at every user set interval
+4. `stop_loop`
+    - alias for: `wezterm.emit("bagman.stop-loop", window")`
+    - stops the current auto cycle bg images loop 
