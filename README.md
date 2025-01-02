@@ -41,7 +41,7 @@ a `setup()` function though.
 bagman.setup({
     -- required
     -- pass in directories that contain images for bagman to search in
-    directories = {
+    dirs = {
         -- you can pass in directories as a string (must be absolute path),
         "/abs/path/to/dir",
 
@@ -51,9 +51,10 @@ bagman.setup({
             path = os.getenv("HOME") .. "/path/to/home/subdir",
             vertical_align = "Top", -- default: "Middle"
             horizontal_align = "Right", -- default: "Center"
+            object_fit = "Fill", -- default: "Contain"
         },
 
-        -- horizontal_align and vertical_align are optional.
+        -- all fields except path are optional
         -- this is equivalent to just passing it in as a string.
         {
             path = os.getenv("HOME") .. "/path/to/another/home/subdir",
