@@ -72,7 +72,7 @@ bagman.setup({
 
     -- whether to immediately start changing bg image every <interval> seconds on
     -- startup.
-    -- default: false
+    -- default: true
     start_looping = true,
 
     -- whether to change tab_bar colors based off the current background image

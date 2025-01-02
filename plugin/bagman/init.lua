@@ -26,7 +26,7 @@ local bagman_data = {
 		-- this manually by `wezterm.action.EmitEvent("bagman.start-loop")` or
 		-- `bagman.action.start_loop()`. Should only ever have 1 loop. If the event
 		-- `bagman.start_loop` gets emitted again, it won't do anything.
-		is_looping = false,
+		is_looping = true,
 		-- For limiting repeat triggering `bagman.next-image` event whenever an error is
 		-- encountered. Should only be incremented and reset in the 'bagman.next-image' event
 		-- handler.
@@ -207,6 +207,8 @@ function M.setup(opts)
 			local _, _, window = wezterm.mux.spawn_window(cmd or {})
 			loop_forever(window:gui_window())
 		end)
+	else
+		bagman_data.state.is_looping = false
 	end
 end
 
