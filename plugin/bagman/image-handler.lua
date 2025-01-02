@@ -37,7 +37,13 @@ function M.dimensions(image)
 		return 0, 0, false
 	end
 	local width, height = res:match("^(%d+) (%d+)")
-	return width, height, true
+	local width_num = tonumber(width)
+	local height_num = tonumber(height)
+	if not width_num or not height_num then
+		wezterm.log_error("BAGMAN IMAGE HANDLER ERROR: Failed to convert to number:", width, height)
+		return 0, 0, false
+	end
+	return width_num, height_num, true
 end
 
 ---Returns the resized dimensions of an image based on the specified object_fit strategy
