@@ -18,18 +18,23 @@ function M.dimensions(image)
 		return 0, 0, false
 	end
 	local res = cmd.exec({
-		linux = { "identify", "-format", "%w %h", image },
-		macos = { "magick", "identify", "-format", "%w %h", image },
-		windows = { "magick", "identify", "-format", "%w %h", image },
+		linux = { "identify", "-format", "%w %h ", image },
+		macos = { "magick", "identify", "-format", "%w %h ", image },
+		windows = { "magick", "identify", "-format", "%w %h ", image },
 	})
 	if not res then
-		wezterm.log_error("Failed to get dimensions of image:", image, "; Result is nil:", res)
+		wezterm.log_error(
+			"BAGMAN IMAGE HANDLER ERROR: Failed to get dimensions of image:",
+			image,
+			"; Result is nil:",
+			res
+		)
 		return 0, 0, false
 	end
-	local wh = res:match("^(%d+) (%d+)")
+	local wh = res:match("^(%d+) (%d+) ")
 	if not wh then
 		wezterm.log_error(
-			"Failed to get dimensions of image:",
+			"BAGMAN IMAGE HANDLER ERROR: Failed to get dimensions of image:",
 			image,
 			"; Did not get width and height from result:",
 			res
