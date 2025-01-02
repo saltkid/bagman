@@ -91,22 +91,24 @@ end
 ---@return table<string> images
 ---@return "Top" | "Middle" | "Bottom" vertical_align
 ---@return "Left" | "Center" | "Right" horizontal_align
+---@return "Contain" | "Cover" | "Fill"
 ---@return boolean ok successful execution
 local function images_from_dirs(dirs)
 	local dir = dirs[math.random(#dirs)]
 	local images, ok = images_in_dir(type(dir) == "string" and dir or dir.path)
-	return images, dir.vertical_align, dir.horizontal_align, ok
+	return images, dir.vertical_align, dir.horizontal_align, dir.object_fit, ok
 end
 
 -- Gets a the images in a random directory from `bagman_data.config.dirs`.
 -- This global was assigned by user on `require("bagman").setup()`
 ---@param window Window used to calculate image dimensions to fit within the screen
 ---@param images table<string>
+---@param object_fit "Contain" | "Cover" | "Fill"
 ---@return string image path to image file
 ---@return number image_width
 ---@return number image_height
 ---@return boolean ok successful execution
-local function random_image_from_images(window, images)
+local function random_image_from_images(window, images, object_fit)
 	---@type string
 	local image = images[math.random(#images)]
 	local image_width, image_height, ok = image_handler.dimensions(image)
@@ -114,8 +116,13 @@ local function random_image_from_images(window, images)
 		return "", 0, 0, false
 	end
 	local window_dims = window:get_dimensions()
-	local width_val, height_val =
-		image_handler.contain_dimensions(image_width, image_height, window_dims.pixel_width, window_dims.pixel_height)
+	local width_val, height_val = image_handler.resize_image(
+		image_width,
+		image_height,
+		window_dims.pixel_width,
+		window_dims.pixel_height,
+		object_fit
+	)
 	return image, width_val, height_val, true
 end
 
@@ -133,9 +140,17 @@ local function set_bg_image(window, image, image_width, image_height, vertical_a
 	overrides.background = {
 		{
 			source = {
+				Color = bagman_data.config.backdrop,
+			},
+			opacity = 0.90,
+			height = "100%",
+			width = "100%",
+		},
+		{
+			source = {
 				File = image,
 			},
-			opacity = 0.70,
+			opacity = 0.20,
 			height = image_height,
 			width = image_width,
 			vertical_align = vertical_align,
@@ -144,15 +159,6 @@ local function set_bg_image(window, image, image_width, image_height, vertical_a
 			hsb = dimmer,
 			repeat_x = "NoRepeat",
 			repeat_y = "NoRepeat",
-		},
-		{
-			source = {
-				---@diagnostic disable-next-line: assign-type-mismatch
-				Color = bagman_data.config.backdrop,
-			},
-			opacity = 0.90,
-			height = "100%",
-			width = "100%",
 		},
 	}
 	window:set_config_overrides(overrides)
@@ -178,12 +184,14 @@ function M.setup(opts)
 				path = dirty_dir,
 				vertical_align = "Middle",
 				horizontal_align = "Center",
+				object_fit = "Contain",
 			}
 		else
 			clean_dirs[i] = {
 				path = dirty_dir.path,
 				vertical_align = dirty_dir.vertical_align or "Middle",
 				horizontal_align = dirty_dir.horizontal_align or "Center",
+				object_fit = dirty_dir.object_fit or "Contain",
 			}
 		end
 	end
@@ -269,14 +277,14 @@ wezterm.on("bagman.next-image", function(window)
 		return
 	end
 
-	local images, vertical_align, horizontal_align, ok = images_from_dirs(bagman_data.config.dirs)
+	local images, vertical_align, horizontal_align, object_fit, ok = images_from_dirs(bagman_data.config.dirs)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
 	end
 
 	---@diagnostic disable-next-line: redefined-local
-	local image, image_width, image_height, ok = random_image_from_images(window, images)
+	local image, image_width, image_height, ok = random_image_from_images(window, images, object_fit)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
@@ -300,8 +308,8 @@ wezterm.on("window-resized", function(window)
 	local overrides = window:get_config_overrides() or {}
 	local window_dims = window:get_dimensions()
 	local new_width, new_height = image_handler.contain_dimensions(
-		overrides.background[1].width, ---@diagnostic disable-line: param-type-mismatch
-		overrides.background[1].height, ---@diagnostic disable-line: param-type-mismatch
+		overrides.background[1].width, ---@diagnostic disable-line: undefined-field
+		overrides.background[1].height, ---@diagnostic disable-line: undefined-field
 		window_dims.pixel_width,
 		window_dims.pixel_height
 	)
