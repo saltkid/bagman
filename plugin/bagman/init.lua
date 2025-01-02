@@ -142,7 +142,7 @@ local function set_bg_image(window, image, image_width, image_height, vertical_a
 			source = {
 				Color = bagman_data.config.backdrop,
 			},
-			opacity = 0.90,
+			opacity = 0.95,
 			height = "100%",
 			width = "100%",
 		},
@@ -150,7 +150,7 @@ local function set_bg_image(window, image, image_width, image_height, vertical_a
 			source = {
 				File = image,
 			},
-			opacity = 0.20,
+			opacity = 0.10,
 			height = image_height,
 			width = image_width,
 			vertical_align = vertical_align,
@@ -308,13 +308,13 @@ wezterm.on("window-resized", function(window)
 	local overrides = window:get_config_overrides() or {}
 	local window_dims = window:get_dimensions()
 	local new_width, new_height = image_handler.contain_dimensions(
-		overrides.background[1].width, ---@diagnostic disable-line: undefined-field
-		overrides.background[1].height, ---@diagnostic disable-line: undefined-field
+		overrides.background[2].width, ---@diagnostic disable-line: undefined-field
+		overrides.background[2].height, ---@diagnostic disable-line: undefined-field
 		window_dims.pixel_width,
 		window_dims.pixel_height
 	)
-	overrides.background[1].width = new_width
-	overrides.background[1].height = new_height
+	overrides.background[2].width = new_width
+	overrides.background[2].height = new_height
 	window:set_config_overrides(overrides)
 end)
 
