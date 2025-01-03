@@ -24,9 +24,11 @@ local default = {
 ---@type BagmanData
 local bagman_data = {
 	config = {
-		-- Directories where to search for images for. Each directory must also specify its
-		-- vertical_align and horizontal_align that will be applied to each image found under it.
+		-- Directories where to search for images for. Each directory can also specify options
+		-- that will be applied to each image found under it.
 		dirs = {},
+		-- Image files. Each image can also specify options that will be applied to it.
+		images = {},
 		-- Interval in seconds on when to trigger a background change.
 		interval = default.interval,
 		-- Color Layer below the image. Affects the overall tint of the background due to the top
@@ -107,24 +109,27 @@ end
 ---@return "Contain" | "Cover" | "Fill"
 ---@return boolean ok successful execution
 local function images_from_dirs(dirs)
+	if #dirs == 0 then
+		return {}, default.vertical_align, default.horizontal_align, default.object_fit, true
+	end
 	local dir = dirs[math.random(#dirs)]
 	local images, ok = images_in_dir(type(dir) == "string" and dir or dir.path)
 	return images, dir.vertical_align, dir.horizontal_align, dir.object_fit, ok
 end
 
--- Gets a the images in a random directory from `bagman_data.config.dirs`.
--- This global was assigned by user on `require("bagman").setup()`
+-- Gets the images in a random directory from `bagman_data.config.dirs`.
 ---@param window Window used to calculate image dimensions to fit within the screen
 ---@param images table<string>
 ---@param object_fit "Contain" | "Cover" | "Fill"
----@return string image path to image file
+---@return string | BagmanCleanImage image path to image file
 ---@return number image_width
 ---@return number image_height
 ---@return boolean ok successful execution
 local function random_image_from_images(window, images, object_fit)
-	---@type string
+	table.move(bagman_data.config.images, 1, #bagman_data.config.images, #images + 1, images)
+	---@type string | BagmanCleanImage
 	local image = images[math.random(#images)]
-	local image_width, image_height, ok = image_handler.dimensions(image)
+	local image_width, image_height, ok = image_handler.dimensions(image.path or image)
 	if not ok then
 		return "", 0, 0, false
 	end
@@ -134,7 +139,7 @@ local function random_image_from_images(window, images, object_fit)
 		image_height,
 		window_dims.pixel_width,
 		window_dims.pixel_height,
-		object_fit
+		image.object_fit or object_fit
 	)
 	return image, width_val, height_val, true
 end
@@ -179,20 +184,24 @@ end
 
 -- END PRIVATE FUNCTIONS }}}
 
--- EXPORTED FUNCTIONS {{{
+-- EXPORTED MEMBERS {{{
 
 -- Changes background image based on passed in configuration.
 -- If `loop_on_startup` is true, this will create an event handler during [gui-startup](https://wezfurlong.org/wezterm/config/lua/gui-events/gui-startup.html).
 -- If `change_tab_colors` is true, this will change `tab_bar` colors based off of the current image.
 ---@param opts BagmanSetupOptions
 function M.setup(opts)
-	if #opts.dirs == 0 then
-		wezterm.log_error("BAGMAN ERROR: No directories provided for background images. args: ", opts)
+	if (not opts.dirs or #opts.dirs == 0) and (not opts.images or #opts.images == 0) then
+		wezterm.log_error("BAGMAN ERROR: No directories and images provided for background images. args: ", opts)
 	end
+	-- clean dirs option
+	opts.dirs = opts.dirs or {}
 	local clean_dirs = {} ---@type table<number, BagmanCleanDir>
 	for i = 1, #opts.dirs do
 		local dirty_dir = opts.dirs[i]
-		if type(dirty_dir) == "string" then
+		if type(dirty_dir) == "nil" then
+			-- continue
+		elseif type(dirty_dir) == "string" then
 			clean_dirs[i] = {
 				path = dirty_dir,
 				vertical_align = default.vertical_align,
@@ -208,8 +217,33 @@ function M.setup(opts)
 			}
 		end
 	end
+	-- clean images option
+	opts.images = opts.images or {}
+	local clean_images = {} ---@type table<number, BagmanCleanImage>
+	for i = 1, #opts.images do
+		local dirty_image = opts.images[i]
+		if type(dirty_image) == "nil" then
+			-- continue
+		elseif type(dirty_image) == "string" then
+			clean_images[i] = {
+				path = dirty_image,
+				vertical_align = default.vertical_align,
+				horizontal_align = default.horizontal_align,
+				object_fit = default.object_fit,
+			}
+		else
+			clean_images[i] = {
+				path = dirty_image.path,
+				vertical_align = dirty_image.vertical_align or default.vertical_align,
+				horizontal_align = dirty_image.horizontal_align or default.horizontal_align,
+				object_fit = dirty_image.object_fit or default.object_fit,
+			}
+		end
+	end
+	-- setup config data with cleaned data
 	bagman_data.config = {
 		dirs = clean_dirs,
+		images = clean_images,
 		interval = opts.interval or default.interval,
 		backdrop = opts.backdrop or default.backdrop,
 		change_tab_colors = opts.change_tab_colors or default.change_tab_colors,
@@ -299,7 +333,7 @@ wezterm.on("bagman.next-image", function(window)
 		return
 	end
 
-	local images, vertical_align, horizontal_align, object_fit, ok = images_from_dirs(bagman_data.config.dirs)
+	local images, dir_vertical_align, dir_horizontal_align, object_fit, ok = images_from_dirs(bagman_data.config.dirs)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
@@ -320,7 +354,15 @@ wezterm.on("bagman.next-image", function(window)
 		}
 	end
 
-	set_bg_image(window, image, image_width, image_height, vertical_align, horizontal_align, colors)
+	set_bg_image(
+		window,
+		image.path or image,
+		image_width,
+		image_height,
+		image.vertical_align or dir_vertical_align,
+		image.horizontal_align or dir_horizontal_align,
+		colors
+	)
 	bagman_data.state.retries = 0
 end)
 
