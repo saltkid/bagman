@@ -99,9 +99,9 @@ local function images_in_dir(dir)
 	return images, true
 end
 
--- Gets a the images in a random directory from `bagman_data.config.dirs`.
--- This global was assigned by user on `require("bagman").setup()`.
--- Also returns the directory's assigned metadata
+-- Gets a the images in a random directory from `bagman_data.config.dirs`. Also returns the
+-- directory's assigned metadata.
+-- If there are no dirs set by user, safely return default values with an empty list of images.
 ---@param dirs table<number, BagmanCleanDir | string> list of directories
 ---@return table<string> images
 ---@return "Top" | "Middle" | "Bottom" vertical_align
@@ -112,12 +112,15 @@ local function images_from_dirs(dirs)
 	if #dirs == 0 then
 		return {}, default.vertical_align, default.horizontal_align, default.object_fit, true
 	end
+
 	local dir = dirs[math.random(#dirs)]
 	local images, ok = images_in_dir(type(dir) == "string" and dir or dir.path)
 	return images, dir.vertical_align, dir.horizontal_align, dir.object_fit, ok
 end
 
--- Gets the images in a random directory from `bagman_data.config.dirs`.
+-- Gets the images in a random directory from `bagman_data.config.dirs`. Also sources
+-- `bagman_data.config.images` for images to choose from.
+-- Will fail if there are no images found from both images in a dir and `bagman_data.config.images`
 ---@param window Window used to calculate image dimensions to fit within the screen
 ---@param images table<string>
 ---@param object_fit "Contain" | "Cover" | "Fill"
@@ -127,6 +130,11 @@ end
 ---@return boolean ok successful execution
 local function random_image_from_images(window, images, object_fit)
 	table.move(bagman_data.config.images, 1, #bagman_data.config.images, #images + 1, images)
+	if #images == 0 then
+		wezterm.log_error("BAGMAN ERROR: no images given by user. Try checking the `dirs` and/or `images` setup option")
+		return {}, 0, 0, false
+	end
+
 	---@type string | BagmanCleanImage
 	local image = images[math.random(#images)]
 	local image_width, image_height, ok = image_handler.dimensions(image.path or image)
