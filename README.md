@@ -7,27 +7,12 @@ large.
 
 ## Key Features
 - auto cycle background images at a user-defined interval.
-- optional changing of `tab_bar` colors based on the current background image
 - set different
 [`object-fit`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit)
 strategies for background images
-- simulates css's `object-fit: contain` even when the window gets resized.
-    - setting both `width` and `height` to
-    [`"Contain"`](https://wezfurlong.org/wezterm/config/lua/config/background.html?h=Contain#layer-definition)
-    should do this, and should not be advertised as a plugin feature but
-    dimensions need to be computed manually. This due to Wezterm's `"Contain"`
-    not respecting aspect ratio currently. See wez/wezterm#3708,
-    wez/wezterm#4407, and wez/wezterm#6537 for more info
-
+- optional changing of `tab_bar` colors based on the current background image
 
 # Installation
-## Prerequisites
-1. install [ImageMagick](https://imagemagick.org/)
-    - this is to get the [`identify`](https://imagemagick.org/script/identify.php) command for
-    getting image dimensions to simulate css's
-    [`object-fit: contain`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit#contain)
-
-## Plugin installation
 To conform with wezterm's current
 [plugin system](https://github.com/wez/wezterm/commit/e4ae8a844d8feaa43e1de34c5cc8b4f07ce525dd),
 install bagman via:
