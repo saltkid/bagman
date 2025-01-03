@@ -39,7 +39,6 @@ a `setup()` function though.
 # Sample Setup
 ```lua
 bagman.setup({
-    -- required
     -- pass in directories that contain images for bagman to search in
     dirs = {
         -- you can pass in directories as a string (must be absolute path),
@@ -55,9 +54,28 @@ bagman.setup({
         },
 
         -- all fields except path are optional
-        -- this is equivalent to just passing it in as a string.
+        -- below is equivalent to just passing it in as a string.
         {
             path = os.getenv("HOME") .. "/path/to/another/home/subdir",
+        },
+    },
+    -- you can also pass in image files
+    images = {
+        -- as string
+        "/abs/path/to/image",
+
+        -- as a table with options
+        {
+            path = os.getenv("HOME") .. "/path/to/another/image.jpg",
+            vertical_align = "Top", -- default: "Middle"
+            horizontal_align = "Right", -- default: "Center"
+            object_fit = "Fill", -- default: "Contain"
+        },
+
+        -- as a table without the options
+        -- below is equivalent to just passing it in as a string.
+        {
+            path = os.getenv("HOME") .. "/path/to/another/image.gif",
         },
     },
 
