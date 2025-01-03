@@ -1,5 +1,4 @@
 local wezterm = require("wezterm") --[[@as Wezterm]]
-local image_handler = require("bagman.image-handler") --[[@as ImageHandler]]
 local colorscheme_builder = require("bagman.colorscheme-builder") --[[@as ColorSchemeBuilder]]
 
 ---@class Bagman
@@ -127,36 +126,28 @@ local function random_image_from_dirs(dirs, more_images)
 		true
 end
 
----@param image string | BagmanCleanImage
----@param window_width number window's width in px (`window:get_dimensions().pixel_width`)
----@param window_height number window's height in px (`window:get_dimensions().pixel_height`)
 ---@param object_fit "Contain" | "Cover" | "Fill"
----@return number width image width
----@return number height image height
+---@return "Cover" | "Contain" | string width image width (can be percentage from "0%"-"100")
+---@return "Cover" | "Contain" | string height image height (can be percentage from "0%"-"100")
 ---@return bool ok successful execution
-local function scale_image(image, window_width, window_height, object_fit)
-	local image_width, image_height, ok = image_handler.dimensions(image.path or image)
-	if not ok then
-		return 0, 0, false
+local function scale_image(object_fit)
+	if object_fit == "Contain" or object_fit == "Cover" then
+		return object_fit, object_fit, true
+	elseif object_fit == "Fill" then
+		return "100%", "100%", true
+	else
+		wezterm.log_error("BAGMAN ERROR: unknown object_fit:", object_fit)
+		return "", "", false
 	end
-
-	local scaled_width, scaled_height = image_handler.resize_image(
-		image_width,
-		image_height,
-		window_width,
-		window_height,
-		image.object_fit or object_fit
-	)
-	return scaled_width, scaled_height, true
 end
 
 -- Set the passed in image and metadata as the background image for the passed in window object.
 ---@param window Window used to change the background image
 ---@param image string path to image
----@param image_width number
----@param image_height number
----@param vertical_align string
----@param horizontal_align string
+---@param image_width "Cover" | "Contain" | string image width (can be percentage from "0%"-"100")
+---@param image_height "Cover" | "Contain" | string image height (can be percentage from "0%"-"100")
+---@param vertical_align "Top" | "Middle" | "Bottom"
+---@param horizontal_align "Left" | "Center" | "Right"
 ---@param colors? Palette tab line colorscheme
 local function set_bg_image(window, image, image_width, image_height, vertical_align, horizontal_align, colors)
 	local overrides = window:get_config_overrides() or {}
@@ -346,10 +337,8 @@ wezterm.on("bagman.next-image", function(window)
 		return M.emit.next_image(window)
 	end
 
-	local window_dims = window:get_dimensions()
 	---@diagnostic disable-next-line: redefined-local
-	local scaled_width, scaled_height, ok =
-		scale_image(image, window_dims.pixel_width, window_dims.pixel_height, object_fit)
+	local scaled_width, scaled_height, ok = scale_image(object_fit)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
@@ -378,18 +367,12 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 	opts.object_fit = opts.object_fit or default.object_fit
 
 	if not opts.width or not opts.height then
-		local image_width, image_height, ok = image_handler.dimensions(image)
+		local image_width, image_height, ok = scale_image(opts.object_fit)
 		if not ok then
 			return
 		end
-		local window_dims = window:get_dimensions()
-		opts.width, opts.height = image_handler.resize_image(
-			image_width,
-			image_height,
-			window_dims.pixel_width,
-			window_dims.pixel_height,
-			opts.object_fit
-		)
+		opts.width = image_width
+		opts.height = image_height
 	end
 
 	local colors = nil
@@ -402,22 +385,6 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 
 	set_bg_image(window, image, opts.width, opts.height, opts.vertical_align, opts.horizontal_align, colors)
 	bagman_data.state.retries = 0
-end)
-
----Recomputes the background image dimensions when resized
----@param window Window used to change the background image
-wezterm.on("window-resized", function(window)
-	local overrides = window:get_config_overrides() or {}
-	local window_dims = window:get_dimensions()
-	local new_width, new_height = image_handler.contain_dimensions(
-		overrides.background[2].width, ---@diagnostic disable-line: undefined-field
-		overrides.background[2].height, ---@diagnostic disable-line: undefined-field
-		window_dims.pixel_width,
-		window_dims.pixel_height
-	)
-	overrides.background[2].width = new_width
-	overrides.background[2].height = new_height
-	window:set_config_overrides(overrides)
 end)
 
 -- END EVENT HANDLERS }}}

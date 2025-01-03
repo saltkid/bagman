@@ -63,5 +63,5 @@
 ---@field vertical_align? "Top" | "Middle" | "Bottom"
 ---@field horizontal_align? "Left" | "Center" | "Right"
 ---@field object_fit? "Contain" | "Cover" | "Fill"
----@field width? number
----@field height? number
+---@field width? "Cover" | "Contain" | string
+---@field height? "Cover" | "Contain" | string
