@@ -1,12 +1,24 @@
 # bagman
-Background Manager for [Wezterm](https://github.com/wez/wezterm/) that automatically cycles through
-different backgrounds at a user set interval. It can change `tab_bar` colors based on the
-background image. bagman also simulates css's
-[`object-fit: contain`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit#contain), even
-when the window gets resized.
+Background Manager for [Wezterm](https://github.com/wez/wezterm/) that
+automatically cycles through different backgrounds at a user-defined interval.
+Updating the background image happens at the foreground. Usually, the
+interrupts are quick but the it might get too long if the image is too
+large.
 
-Updating the background image happens at the foreground. Usually, the interrupts are quick but the it
-might get too long if the image is too large.
+## Key Features
+- auto cycle background images at a user-defined interval.
+- optional changing of `tab_bar` colors based on the current background image
+- set different
+[`object-fit`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit)
+strategies for background images
+- simulates css's `object-fit: contain` even when the window gets resized.
+    - setting both `width` and `height` to
+    [`"Contain"`](https://wezfurlong.org/wezterm/config/lua/config/background.html?h=Contain#layer-definition)
+    should do this, and should not be advertised as a plugin feature but
+    dimensions need to be computed manually. This due to Wezterm's `"Contain"`
+    not respecting aspect ratio currently. See wez/wezterm#3708,
+    wez/wezterm#4407, and wez/wezterm#6537 for more info
+
 
 # Installation
 ## Prerequisites
@@ -14,10 +26,6 @@ might get too long if the image is too large.
     - this is to get the [`identify`](https://imagemagick.org/script/identify.php) command for
     getting image dimensions to simulate css's
     [`object-fit: contain`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit#contain)
-    since Wezterm's
-    [`height = "Contain"`](https://wezfurlong.org/wezterm/config/lua/config/background.html?h=Contain#layer-definition)
-    does not respect aspect ratio. See [this issue](https://github.com/wez/wezterm/issues/3708) for
-    more info
 
 ## Plugin installation
 To conform with wezterm's current
@@ -27,16 +35,33 @@ install bagman via:
 local wezterm = require("wezterm")
 local bagman = wezterm.plugin.require("https://github.com/saltkid/bagman")
 local config = wezterm.config_builder()
+
+bagman.setup({
+    -- see the setup section of the API Reference below
+})
 bagman.apply_to_config(config)
---[[ the rest of your config
-    ...
-]]--
+
 return config
 ```
-bagman only adds event listeners so `bagman.apply_to_config(config)` does nothing. bagman does have
-a `setup()` function though.
 
-# Sample Setup
+---
+
+# bagman API Reference
+## Table of Contents
+- [`apply_to_config(config)`](#bagmanapply_to_configconfig)
+- [`setup(opts)`](#bagmansetupopts)
+- [`action.next_image()`](#bagmanactionnext_image)
+- [`action.start_loop()`](#bagmanactionstart_loop)
+- [`action.stop_loop()`](#bagmanactionstop_loop)
+- [`emit.next_image(window)`](#bagmanemitnext_imagewindow)
+- [`emit.set_image(window, image, opts)`](#bagmanemitset_imagewindow-image-opts)
+- [`emit.start_loop(window)`](#bagmanemitstart_loopwindow)
+- [`emit.stop_loop(window)`](#bagmanemitstop_loopwindow)
+
+### `bagman.apply_to_config(config)`
+bagman only registers event listeners so `bagman.apply_to_config(config)` does
+nothing for now.
+### `bagman.setup(opts)`
 ```lua
 bagman.setup({
     -- pass in directories that contain images for bagman to search in
@@ -44,8 +69,8 @@ bagman.setup({
         -- you can pass in directories as a string (must be absolute path),
         "/abs/path/to/dir",
 
-        -- or you can pass it in as a table where you can define a custom horizontal_align and/or
-        -- vertical_align for images under that directory.
+        -- or you can pass it in as a table where you can define options for
+        -- images under that directory.
         {
             path = os.getenv("HOME") .. "/path/to/home/subdir",
             vertical_align = "Top", -- default: "Middle"
@@ -53,7 +78,7 @@ bagman.setup({
             object_fit = "Fill", -- default: "Contain"
         },
 
-        -- all fields except path are optional
+        -- all fields except path are optional.
         -- below is equivalent to just passing it in as a string.
         {
             path = os.getenv("HOME") .. "/path/to/another/home/subdir",
@@ -73,23 +98,23 @@ bagman.setup({
         },
 
         -- as a table without the options
-        -- below is equivalent to just passing it in as a string.
         {
             path = os.getenv("HOME") .. "/path/to/another/image.gif",
         },
     },
 
-    -- in seconds.
+    -- Interval in seconds on when to trigger a background image change.
     -- default: 30 * 60
     interval = 10 * 60,
 
-    -- can be any ansi color like "Maroon", "Green", or "Aqua"
-    -- or any hex color string like "#121212"
+    -- Color Layer below the image. Affects the overall tint of the background
+    -- can be any ansi color like "Maroon", "Green", or "Aqua" or any hex color
+    -- string like "#121212"
     -- default: "#000000"
     backdrop = "#161616",
 
-    -- whether to immediately start changing bg image every <interval> seconds on
-    -- startup.
+    -- Whether to immediately start changing bg image every <interval> seconds
+    -- on startup.
     -- default: true
     start_looping = true,
 
@@ -99,81 +124,123 @@ bagman.setup({
 })
 ```
 
-# actions and emitters
-## Overview
-bagman has a soft wrapper around  `wezterm.action.EmitEvent` and `wezterm.emit` to more easily
-interact with bagman event listeners.
+### `bagman.action.next_image()`
+_Alias for: `wezterm.action.EmitEvent("bagman.next-image")`_
 
-## Examples
-For example, you can manually change the background image through a keybind
+Changes the background image to a random image based on setup options. Random
+images are chosen from a images in a random dir in `dirs` setup option
+along with the `images` option
+
+Example: change bg image through a keybind
 ```lua
-local wezterm = require("wezterm")
-local bagman = wezterm.plugin.require("https://github.com/saltkid/bagman")
-
-return {
-    keys = {
-        {
-            mods = 'CTRL|ALT|SHIFT',
-            key = 'i',
-            -- alias for wezterm.action.EmitEvent("bagman.next-image")
-            action = bagman.action.next_image,
-        },
+config.keys = {
+    {
+        mods = 'CTRL',
+        key = 'i',
+        action = bagman.action.next_image,
+        -- action = wezterm.action.EmitEvent("bagman.next-image"),
     },
-}
+},
 ```
+### `bagman.action.start_loop()`
+_Alias for: `wezterm.action.EmitEvent("bagman.start-loop")`_
 
-You can also manually emit a next image event with a [Window object](https://wezfurlong.org/wezterm/config/lua/window/).
-This example is to change the bg image when a `bell` event occurs.
+Starts the auto cycle bg images loop at every user set interval. Only one loop
+may be present so triggering this event again will safely do nothing. If
+`start_looping` setup option is set to true, triggering this action will not do
+anything since `start_looping = true` will create an image cycling loop on
+startup.
 ```lua
-local wezterm = require("wezterm")
-local bagman = wezterm.plugin.require("https://github.com/saltkid/bagman")
+bagman.setup({
+    start_looping = true, -- will start the image cycle loop on startup
+    dirs = { ... },
+    ...
+})
+```
+See [`bagman.action.next_image()`](#bagman.action.next_image()) for an example
+on how to use a bagman action with a keybind.
 
-wezterm.on("bell", function(window, pane)
-    -- alias for wezterm.emit("bagman.next-image", window)
+### `bagman.action.stop_loop()`
+_Alias for: `wezterm.action.EmitEvent("bagman.stop-loop")`_
+
+Stops the current auto cycle bg images loop. Does nothing if there are no loops
+currently running.
+
+See [`bagman.action.next_image()`](#bagman.action.next_image()) for an example
+on how to use a bagman action with a keybind.
+
+### `bagman.emit.next_image(window)`
+_Alias for: `wezterm.emit("bagman.next-image", window)`_
+
+Changes the background image to a random image based on setup options. Random
+images are chosen from a images in a random dir in `dirs` setup option
+along with the `images` option
+
+Example: change the bg image when you open a new tab
+```lua
+wezterm.on("new-tab-button-click", function(window, pane)
     bagman.emit.next_image(window)
-    --[[ your other code
-        ...
-    ]]--
+    ...
 end)
 ```
 
-## List of actions
-Usage: `bagman.action.action_name`
+### `bagman.emit.set_image(window, image, opts)`
+_Alias for: `wezterm.emit("bagman.set-image", window, "/path/to/image", {})`_
 
-Alias for event format: `wezterm.action.EmitEvent("bagman.action-name")`
-| action_name | alias for event | description |
-| ----------- | --------- | ----------- |
-| `next_image`  | `"bagman.next-image"` | changes the bg image |
-| `start_loop`  | `"bagman.start-loop"` | starts the auto cycle bg images loop at every user set interval (default: 30) |
-| `stop_loop`  | `"bagman.stop-loop"` | stops the current auto cycle bg images loop |
+Sets a specified image path as the background image where you can define
+options to scale and position the image however you'd like. Specifically, the
+options are as follows:
+| option | default value |
+|--------|---------------|
+| `vertical_align` | `"Middle"` |
+| `horizontal_align` | `"Center"` |
+| `object_fit` | `"Contain"` |
+| `width` | `nil` |
+| `height` | `nil` |
 
-## List of emitters
-Usage: `bagman.emit.emitter_name(window, ...opts)`
+Note that if no width and height is given, the image will be scaled according
+to the `object_fit` option. Same goes for when only either width or height is
+given. Only when both `width` and `height` are given will the scaling ignore
+the `object_fit` option.
 
-Emitters always take a [Window object](https://wezfurlong.org/wezterm/config/lua/window/) with some
-having additional params.
-1. `next_image`
-    - changes the bg image with a random image
-    - alias for: `wezterm.emit("bagman.next-image", window)`
-2. `set_image`
-    - sets a specified image as the bg image 
-    - alias for: `wezterm.emit("bagman.set-image", window, "/path/to/image", {})`
-    - params:
-        - image (required): path to image file 
-        - opts: options to scale and position the image
-            ```lua
-            -- defaults
-            {
-                vertical_align = "Middle",
-                horizontal_align = "Center",
-                object_fit = "Contain",
-                width = --[[ the actual image width ]],
-                height = --[[ the actual image height ]],
-            }
-            ```
-3. `start_loop`
-    - alias for: `wezterm.emit("bagman.start-loop", window)`
-    - starts the auto cycle bg images loop at every user set interval
-4. `stop_loop`
-    - alias for: `wezterm.emit("bagman.stop-loop", window")`
-    - stops the current auto cycle bg images loop 
+Example: change background image temporarily on `"bell"` event, like a jumpscare
+```lua
+wezterm.on("bell", function(window, pane)
+    local overrides = window:get_config_overrides() or {}
+
+    -- background[1] is the backdrop color set by bagman
+    -- background[2] is always the background image set by bagman
+    local prev_image = overrides.background[2].source.File
+    local jumpscare = "/path/to/some/image.png"
+    bagman.emit.set_image(window, jumpscare, {
+        object_fit = "Fill",
+    })
+
+    -- put back the previous image after 2 seconds
+    wezterm.time.call_after(2, function()
+        bagman.emit.set_image(window, prev_image)
+    end)
+end)
+```
+
+### `bagman.emit.start_loop(window)`
+_Alias for: `wezterm.emit("bagman.start-loop", window)`_
+
+Starts the auto cycle bg images loop at every user set interval. Only one loop
+may be present so manually emitting this event again will safely do nothing. If
+`start_looping` setup option is set to true, triggering this action will not do
+anything since `start_looping = true` will create an image cycling loop on
+startup.
+```lua
+bagman.setup({
+    start_looping = true, -- will start the image cycle loop on startup
+    dirs = { ... },
+    ...
+})
+```
+
+### `bagman.emit.stop_loop(window)`
+_Alias for: `wezterm.emit("bagman.stop-loop", window)`_
+
+Stops the current auto cycle bg images loop. Does nothing if there are no loops
+currently running.
