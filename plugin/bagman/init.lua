@@ -70,7 +70,6 @@ end
 -- valid filetypes: `*.png, *.jpg, *.jpeg, *.gif, *.bmp, *.ico, *.tiff, *.pnm, *.dds, *.tga, *.farbfeld`
 ---@param dir string must be absolute path
 ---@return table<string> images in `dir`
----@return boolean ok successful execution
 local function images_in_dir(dir)
 	local image_types = {
 		"*.png",
@@ -92,64 +91,63 @@ local function images_in_dir(dir)
 			table.insert(images, file)
 		end
 	end
-	if #images == 0 then
-		wezterm.log_error("BAGMAN ERROR: No images found in directory: ", dir)
-		return {}, false
-	end
-	return images, true
-end
-
--- Gets a the images in a random directory from `bagman_data.config.dirs`. Also returns the
--- directory's assigned metadata.
--- If there are no dirs set by user, safely return default values with an empty list of images.
----@param dirs table<number, BagmanCleanDir | string> list of directories
----@return table<string> images
----@return "Top" | "Middle" | "Bottom" vertical_align
----@return "Left" | "Center" | "Right" horizontal_align
----@return "Contain" | "Cover" | "Fill"
----@return boolean ok successful execution
-local function images_from_dirs(dirs)
-	if #dirs == 0 then
-		return {}, default.vertical_align, default.horizontal_align, default.object_fit, true
-	end
-
-	local dir = dirs[math.random(#dirs)]
-	local images, ok = images_in_dir(type(dir) == "string" and dir or dir.path)
-	return images, dir.vertical_align, dir.horizontal_align, dir.object_fit, ok
+	return images
 end
 
 -- Gets the images in a random directory from `bagman_data.config.dirs`. Also sources
 -- `bagman_data.config.images` for images to choose from.
 -- Will fail if there are no images found from both images in a dir and `bagman_data.config.images`
----@param window Window used to calculate image dimensions to fit within the screen
----@param images table<string>
----@param object_fit "Contain" | "Cover" | "Fill"
----@return string | BagmanCleanImage image path to image file
----@return number image_width
----@return number image_height
+---@param dirs table<number, BagmanCleanDir> to get random images from a random dir in dirs
+---@param more_images table<number, BagmanCleanImage> additional images to choose from
+---@return string image path to image file
+---@return "Top" | "Middle" | "Bottom" vertical_align
+---@return "Left" | "Center" | "Right" horizontal_align
+---@return "Contain" | "Cover" | "Fill" object_fit
 ---@return boolean ok successful execution
-local function random_image_from_images(window, images, object_fit)
-	table.move(bagman_data.config.images, 1, #bagman_data.config.images, #images + 1, images)
-	if #images == 0 then
-		wezterm.log_error("BAGMAN ERROR: no images given by user. Try checking the `dirs` and/or `images` setup option")
-		return {}, 0, 0, false
+local function random_image_from_dirs(dirs, more_images)
+	---@type table<number, string | BagmanCleanImage>
+	local images = {}
+	local dir = {}
+	if #dirs ~= 0 then
+		dir = dirs[math.random(#dirs)]
+		images = images_in_dir(dir.path)
 	end
 
-	---@type string | BagmanCleanImage
+	table.move(more_images, 1, #more_images, #images + 1, images)
+	if #images == 0 then
+		wezterm.log_error("BAGMAN ERROR: no images given by user. Try checking the `dirs` and/or `images` setup option")
+		return "", default.vertical_align, default.horizontal_align, default.object_fit, false
+	end
+
 	local image = images[math.random(#images)]
+	return image.path or image,
+		image.vertical_align or dir.vertical_align or default.vertical_align,
+		image.horizontal_align or dir.horizontal_align or default.horizontal_align,
+		image.object_fit or dir.object_fit or default.object_fit,
+		true
+end
+
+---@param image string | BagmanCleanImage
+---@param window_width number window's width in px (`window:get_dimensions().pixel_width`)
+---@param window_height number window's height in px (`window:get_dimensions().pixel_height`)
+---@param object_fit "Contain" | "Cover" | "Fill"
+---@return number width image width
+---@return number height image height
+---@return bool ok successful execution
+local function scale_image(image, window_width, window_height, object_fit)
 	local image_width, image_height, ok = image_handler.dimensions(image.path or image)
 	if not ok then
-		return "", 0, 0, false
+		return 0, 0, false
 	end
-	local window_dims = window:get_dimensions()
-	local width_val, height_val = image_handler.resize_image(
+
+	local scaled_width, scaled_height = image_handler.resize_image(
 		image_width,
 		image_height,
-		window_dims.pixel_width,
-		window_dims.pixel_height,
+		window_width,
+		window_height,
 		image.object_fit or object_fit
 	)
-	return image, width_val, height_val, true
+	return scaled_width, scaled_height, true
 end
 
 -- Set the passed in image and metadata as the background image for the passed in window object.
@@ -341,14 +339,17 @@ wezterm.on("bagman.next-image", function(window)
 		return
 	end
 
-	local images, dir_vertical_align, dir_horizontal_align, object_fit, ok = images_from_dirs(bagman_data.config.dirs)
+	local image, vertical_align, horizontal_align, object_fit, ok =
+		random_image_from_dirs(bagman_data.config.dirs, bagman_data.config.images)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
 	end
 
+	local window_dims = window:get_dimensions()
 	---@diagnostic disable-next-line: redefined-local
-	local image, image_width, image_height, ok = random_image_from_images(window, images, object_fit)
+	local scaled_width, scaled_height, ok =
+		scale_image(image, window_dims.pixel_width, window_dims.pixel_height, object_fit)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
@@ -362,15 +363,7 @@ wezterm.on("bagman.next-image", function(window)
 		}
 	end
 
-	set_bg_image(
-		window,
-		image.path or image,
-		image_width,
-		image_height,
-		image.vertical_align or dir_vertical_align,
-		image.horizontal_align or dir_horizontal_align,
-		colors
-	)
+	set_bg_image(window, image, scaled_width, scaled_height, vertical_align, horizontal_align, colors)
 	bagman_data.state.retries = 0
 end)
 
