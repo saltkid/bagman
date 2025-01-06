@@ -11,7 +11,7 @@ local M = {}
 ---@param object_fit "Contain" | "Cover" | "Fill"
 ---@return number new_width
 ---@return number new_height
-function M.resize_image(image_width, image_height, window_width, window_height, object_fit)
+function M.resize(image_width, image_height, window_width, window_height, object_fit)
 	if "Contain" == object_fit then
 		local new_width, new_height = M.contain_dimensions(image_width, image_height, window_width, window_height)
 		return new_width, new_height
