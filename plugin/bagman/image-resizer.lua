@@ -1,55 +1,7 @@
 local wezterm = require("wezterm") --[[@as Wezterm]]
-local cmd = require("bagman.cmd") --[[@as OSUtils]]
 
----@class ImageHandler
+---@class ImageResizer
 local M = {}
-
----Gets the dimensions of the passed in image using `identify` from ImageMagick
----@param image string path to image file
----@return number width
----@return number height
----@return boolean ok successful execution
-function M.dimensions(image)
-	if not cmd.is_executable({
-		linux = "identify",
-		macos = "magick",
-		windows = "magick",
-	}) then
-		return 0, 0, false
-	end
-	local res = cmd.exec({
-		linux = { "identify", "-format", "%w %h ", image },
-		macos = { "magick", "identify", "-format", "%w %h ", image },
-		windows = { "magick", "identify", "-format", "%w %h ", image },
-	})
-	if not res then
-		wezterm.log_error(
-			"BAGMAN IMAGE HANDLER ERROR: Failed to get dimensions of image:",
-			image,
-			"; Result is nil:",
-			res
-		)
-		return 0, 0, false
-	end
-	local wh = res:match("^(%d+) (%d+) ")
-	if not wh then
-		wezterm.log_error(
-			"BAGMAN IMAGE HANDLER ERROR: Failed to get dimensions of image:",
-			image,
-			"; Did not get width and height from result:",
-			res
-		)
-		return 0, 0, false
-	end
-	local width, height = res:match("^(%d+) (%d+)")
-	local width_num = tonumber(width)
-	local height_num = tonumber(height)
-	if not width_num or not height_num then
-		wezterm.log_error("BAGMAN IMAGE HANDLER ERROR: Failed to convert to number:", width, height)
-		return 0, 0, false
-	end
-	return width_num, height_num, true
-end
 
 ---Returns the resized dimensions of an image based on the specified object_fit strategy
 ---@param image_width number

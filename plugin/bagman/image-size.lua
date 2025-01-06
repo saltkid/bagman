@@ -1,15 +1,16 @@
 -- just contains the initial parser to identify which parser to use on a file
+---@class ImageSize
 local Public = {}
 
 -- Contains the image file parsers.
 --
 -- Constraints:
 -- * ALL parsers have their magic numbers checked beforehand by
---   `Public.image_size()` but the file offset is reset at 0.
+--   `Public.size()` but the file offset is reset at 0.
 -- * ALL parsers have handle to files that are at least 8 bytes in length so
 --   you can optimize around that.
 -- * ALL readers SHOULD NOT close the file handle passed to it.
---   `Public.image_size` will handle that
+--   `Public.size()` will handle that
 local private = {}
 
 -- PUBLIC MEMBERS {{{
@@ -28,7 +29,7 @@ local private = {}
 ---@return number width
 ---@return number height
 ---@return string? err error message if errored
-function Public.image_size(file_path)
+function Public.size(file_path)
 	local handle, err = io.open(file_path, "rb")
 	if not handle then
 		return 0, 0, string.format("Unable to open file '%q': %q", file_path, err)

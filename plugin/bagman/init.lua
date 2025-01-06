@@ -1,5 +1,6 @@
 local wezterm = require("wezterm") --[[@as Wezterm]]
-local image_handler = require("bagman.image-handler") --[[@as ImageHandler]]
+local image_size = require("bagman.image-size") --[[@as ImageSize]]
+local image_resizer = require("bagman.image-resizer") --[[@as ImageResizer]]
 local colorscheme_builder = require("bagman.colorscheme-builder") --[[@as ColorSchemeBuilder]]
 
 ---@class Bagman
@@ -135,18 +136,14 @@ end
 ---@return number height image height
 ---@return bool ok successful execution
 local function scale_image(image, window_width, window_height, object_fit)
-	local image_width, image_height, ok = image_handler.dimensions(image.path or image)
-	if not ok then
+	local image_width, image_height, err = image_size.size(image.path or image)
+	if err then
+		wezterm.log_info(err)
 		return 0, 0, false
 	end
 
-	local scaled_width, scaled_height = image_handler.resize_image(
-		image_width,
-		image_height,
-		window_width,
-		window_height,
-		image.object_fit or object_fit
-	)
+	local scaled_width, scaled_height =
+		image_resizer.resize(image_width, image_height, window_width, window_height, image.object_fit or object_fit)
 	return scaled_width, scaled_height, true
 end
 
@@ -378,12 +375,13 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 	opts.object_fit = opts.object_fit or default.object_fit
 
 	if not opts.width or not opts.height then
-		local image_width, image_height, ok = image_handler.dimensions(image)
-		if not ok then
+		local image_width, image_height, err = image_size.size(image)
+		if err then
+			wezterm.log_info(err)
 			return
 		end
 		local window_dims = window:get_dimensions()
-		opts.width, opts.height = image_handler.resize_image(
+		opts.width, opts.height = image_resizer.resize(
 			image_width,
 			image_height,
 			window_dims.pixel_width,
