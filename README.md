@@ -108,6 +108,22 @@ bagman.setup({
 })
 ```
 
+### `bagman.current_image()`
+Returns the latest background image set by bagman, along with its options. Note
+that this is readonly and even if the return value's fields are reassigned, it
+will not affect any bagman functionality.
+
+Fields:
+1. `width`: current width of the image as a background layer (not the original
+width)
+2. `height`: current width of the image as a background layer (not the original
+height)
+3. `path`: path to image file
+4. `object_fit`: current object fit used by the background image
+5. `vertical_align`: current vertical alignment used by the background image
+6. `horizontal_align`: current horizontal alignment used by the background
+image 
+
 ### `bagman.action.next_image()`
 _Alias for: `wezterm.action.EmitEvent("bagman.next-image")`_
 
@@ -192,9 +208,7 @@ Example: change background image temporarily on `"bell"` event, like a jumpscare
 wezterm.on("bell", function(window, pane)
     local overrides = window:get_config_overrides() or {}
 
-    -- background[1] is the backdrop color set by bagman
-    -- background[2] is always the background image set by bagman
-    local prev_image = overrides.background[2].source.File
+    local prev_image = bagman.current_image()
     local jumpscare = "/path/to/some/image.png"
     bagman.emit.set_image(window, jumpscare, {
         object_fit = "Fill",
@@ -202,7 +216,12 @@ wezterm.on("bell", function(window, pane)
 
     -- put back the previous image after 2 seconds
     wezterm.time.call_after(2, function()
-        bagman.emit.set_image(window, prev_image)
+        bagman.emit.set_image(window, prev_image.path, {
+            -- override the object_fit option and use previously calculated
+            -- dimensions to avoid redundant processing.
+            width = prev_image.width,
+            height = prev_image.height,
+        })
     end)
 end)
 ```
