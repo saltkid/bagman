@@ -53,6 +53,23 @@ function Public.image_size(file_path)
 		width, height, err = private.ico_size(handle)
 	elseif magic:sub(1, 2) == "II" or magic:sub(1, 2) == "MM" then
 		width, height, err = private.tiff_size(handle)
+	elseif
+		magic:sub(1, 2) == "P1"
+		or magic:sub(1, 2) == "P2"
+		or magic:sub(1, 2) == "P3"
+		or magic:sub(1, 2) == "P4"
+		or magic:sub(1, 2) == "P5"
+		or magic:sub(1, 2) == "P6"
+	then
+		width, height, err = private.pnm_size(handle)
+	elseif magic:sub(1, 4) == "DDS " then
+		width, height, err = private.dds_size(handle)
+	elseif private.possibly_tga(magic) then
+		width, height, err = private.tga_size(handle)
+	elseif magic == "farbfeld" then
+		width, height, err = private.farbfeld_size(handle)
+	else
+		err = "Unsupported image type: " .. magic
 	end
 
 	handle:close()
@@ -326,6 +343,176 @@ function private.tiff_size(handle)
 	if not width or not height then
 		return 0, 0, string.format("Invalid TIFF file: width/height tag not found (width=%q, height=%q)", width, height)
 	end
+	return width, height, nil
+end
+
+-- get width and height of a pnm file (pbm, pgm, or ppm)
+-- references:
+-- - https://en.wikipedia.org/wiki/Netpbm#Description
+--
+-- Details:
+-- BYTE ORDER: none, values are in plain ASCII
+--
+-- DATA:
+-- * 2: "P{n}" where n is 1-6
+-- * n: comments starting with #
+-- * number after comments: width
+-- * 2nd number after comments: height
+--
+---@param handle file* file handle (do not close it). file is at least 8 bytes in length
+---@return number width
+---@return number height
+---@return string? err error message if errored
+function private.pnm_size(handle)
+	handle:seek("cur", 2) -- skip magic
+	-- skip comments
+	while true do
+		local line = handle:read("*line")
+		if not line then
+			break
+		end
+		if line == "" then
+			-- continue
+		elseif line:sub(1, 1) ~= "#" then
+			handle:seek("cur", -#line - 1)
+			break
+		end
+	end
+	local width, height = handle:read("*n"), handle:read("*n")
+	if not width or not height then
+		return 0, 0, string.format("Invalid PNM file: invalid pnm dimensions (width=%q, height=%q)", width, height)
+	end
+	return width, height, nil
+end
+
+-- get width and height of a dds file
+-- Details:
+-- BYTE ORDER: little-endian
+--
+-- DATA:
+-- * 4: "DDS "
+-- * 4: header size
+-- * 4: flag
+-- * 4: height
+-- * 4: width
+--
+-- total needed: 20
+-- height offset: 13
+-- width offset: 17
+--
+-- references:
+-- - https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide#dds-file-layout
+-- - https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dds-header#syntax
+---@param handle file* file handle (do not close it). file is at least 8 bytes in length
+---@return number width
+---@return number height
+---@return string? err error message if errored
+function private.dds_size(handle)
+	local header = handle:read(20)
+	if #header < 20 then
+		return 0, 0, string.format("Invalid DDS file: malformed header (too short) (%q)", header)
+	end
+	local height = string.unpack("<I4", header:sub(13, 16))
+	local width = string.unpack("<I4", header:sub(17, 20))
+	return width, height, nil
+end
+
+-- TGA does not have a magic number so this tries to guess if a file is a tga
+-- file based on the format constraints
+-- Details:
+-- BYTE ORDER: little-endian
+--
+-- DATA:
+-- 1: ID length (0-255)
+-- 1: color map type (0 or 1)
+-- 1: image type (0,1,2,3,9,10,11,32,33)
+--
+-- references:
+-- - http://www.paulbourke.net/dataformats/tga/
+---@param header string header that's at least 3 bytes
+---@return boolean
+function private.possibly_tga(header)
+	local ID_length = header:byte(1)
+	local color_map_type = header:byte(2)
+	local image_type = header:byte(3)
+	if
+		-- ID length must be (0-255)
+		(ID_length >= 0 and ID_length <= 255)
+		-- color map type must be in (0,1)
+		and (color_map_type == 0 or color_map_type == 1)
+		-- image type must be in (0,1,2,3,9,10,11,32,33)
+		and (
+			image_type == 0
+			or image_type == 1
+			or image_type == 2
+			or image_type == 3
+			or image_type == 9
+			or image_type == 10
+			or image_type == 32
+			or image_type == 33
+		)
+	then
+		return true
+	end
+	return false
+end
+
+-- get width and height of a tga file
+-- Details:
+-- BYTE ORDER: little-endian
+--
+-- DATA:
+-- * 1: ID length (0-255)
+-- * 1: color map type (0 or 1)
+-- * 1: image type (0,1,2,3,9,10,11,32,33)
+-- * 5: color map specification
+-- * 2: X-origin
+-- * 2: Y-origin
+-- * 2: width
+-- * 2: height
+--
+-- total needed: 16
+-- width offset: 13
+-- height offset: 15
+--
+-- references:
+-- - http://www.paulbourke.net/dataformats/tga/
+---@param handle file* file handle (do not close it). file is at least 8 bytes in length
+---@return number width
+---@return number height
+---@return string? err error message if errored
+function private.tga_size(handle)
+	local header = handle:read(16)
+	if not private.possibly_tga(header) then
+		return 0, 0, string.format("Invalid TGA file: malformed header (too short) (%q)", header)
+	end
+	local width = string.unpack("<I2", header:sub(13, 14))
+	local height = string.unpack("<I2", header:sub(15, 16))
+	return width, height, nil
+end
+
+-- get width and height of a farbfeld file
+-- Details:
+-- BYTE ORDER: big-endian
+--
+-- DATA:
+-- * 8: "farbfeld"
+-- * 4: width
+-- * 4: height
+--
+-- references:
+-- - https://github.com/mcritchlow/farbfeld/blob/master/FORMAT
+---@param handle file* file handle (do not close it). file is at least 8 bytes in length
+---@return number width
+---@return number height
+---@return string? err error message if errored
+function private.farbfeld_size(handle)
+	local data = handle:read(16)
+	if #data < 16 then
+		return 0, 0, string.format("Invalid farbfeld file: malformed header (too short) (%q)", data)
+	end
+	local width = string.unpack(">I4", data:sub(9, 12))
+	local height = string.unpack(">I4", data:sub(13, 16))
 	return width, height, nil
 end
 -- }}}
