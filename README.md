@@ -1,8 +1,8 @@
 # bagman
 Background Manager for [Wezterm](https://github.com/wez/wezterm/) that
 automatically cycles through different backgrounds at a user-defined interval.
-Usually, the interrupts to change background are quick but the it might get too
-long if the image is too large.
+Usually, the interrupts to change background are quick but it might get too long
+if the image is too large.
 
 ## Key Features
 - auto cycle background images at a user-defined interval.
@@ -21,7 +21,16 @@ local bagman = wezterm.plugin.require("https://github.com/saltkid/bagman")
 local config = wezterm.config_builder()
 
 bagman.setup({
-    -- see the setup section of the API Reference below
+    dirs = {
+        "/abs/path/to/dir",
+        {
+            path = os.getenv("HOME") .. "/path/to/home/subdir",
+            object_fit = "Contain",
+            horizontal_align = "Right",
+        },
+    },
+    interval = 10 * 60,
+    change_tab_colors = true,
 })
 bagman.apply_to_config(config)
 
