@@ -47,6 +47,16 @@ local bagman_data = {
 		-- encountered. Should only be incremented and reset in the 'bagman.next-image' event
 		-- handler.
 		retries = 0,
+		-- current background image set by bagman. Only really used when resizing window since I
+		-- need to know what object fit an image has.
+		current_image = {
+			path = "",
+			width = 0,
+			height = 0,
+			vertical_align = default.vertical_align,
+			horizontal_align = default.horizontal_align,
+			object_fit = default.object_fit,
+		},
 	},
 }
 
@@ -154,8 +164,18 @@ end
 ---@param image_height number
 ---@param vertical_align string
 ---@param horizontal_align string
+---@param object_fit string for keeping track of object_fit state between window resizes
 ---@param colors? Palette tab line colorscheme
-local function set_bg_image(window, image, image_width, image_height, vertical_align, horizontal_align, colors)
+local function set_bg_image(
+	window,
+	image,
+	image_width,
+	image_height,
+	vertical_align,
+	horizontal_align,
+	object_fit,
+	colors
+)
 	local overrides = window:get_config_overrides() or {}
 	overrides.colors = colors or overrides.colors
 	overrides.background = {
@@ -183,6 +203,15 @@ local function set_bg_image(window, image, image_width, image_height, vertical_a
 		},
 	}
 	window:set_config_overrides(overrides)
+
+	bagman_data.state.current_image = {
+		path = image,
+		height = image_height,
+		width = image_width,
+		vertical_align = vertical_align,
+		horizontal_align = horizontal_align,
+		object_fit = object_fit,
+	}
 end
 
 -- END PRIVATE FUNCTIONS }}}
@@ -262,6 +291,12 @@ function M.setup(opts)
 	end
 end
 
+-- current background image set by bagman. changing this won't do anything and
+-- is only for reading purposes.
+function M.current_image()
+	return require("bagman.utils").table.shallow_copy(bagman_data.state.current_image)
+end
+
 -- Helper for ze autocomplete. Contains emitters equivalent to:
 -- ```lua
 -- require("wezterm").emit(--[["some-bagman-event", args if any]])
@@ -333,6 +368,7 @@ end)
 wezterm.on("bagman.next-image", function(window)
 	if bagman_data.state.retries > 5 then
 		wezterm.log_error("BAGMAN ERROR: Too many next-image retries. Exiting...")
+		bagman_data.state.retries = 5
 		return
 	end
 
@@ -360,7 +396,7 @@ wezterm.on("bagman.next-image", function(window)
 		}
 	end
 
-	set_bg_image(window, image, scaled_width, scaled_height, vertical_align, horizontal_align, colors)
+	set_bg_image(window, image, scaled_width, scaled_height, vertical_align, horizontal_align, object_fit, colors)
 	bagman_data.state.retries = 0
 end)
 
@@ -398,7 +434,16 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 		}
 	end
 
-	set_bg_image(window, image, opts.width, opts.height, opts.vertical_align, opts.horizontal_align, colors)
+	set_bg_image(
+		window,
+		image,
+		opts.width,
+		opts.height,
+		opts.vertical_align,
+		opts.horizontal_align,
+		opts.object_fit,
+		colors
+	)
 	bagman_data.state.retries = 0
 end)
 
@@ -407,14 +452,17 @@ end)
 wezterm.on("window-resized", function(window)
 	local overrides = window:get_config_overrides() or {}
 	local window_dims = window:get_dimensions()
-	local new_width, new_height = image_handler.contain_dimensions(
-		overrides.background[2].width, ---@diagnostic disable-line: undefined-field
-		overrides.background[2].height, ---@diagnostic disable-line: undefined-field
+	local new_width, new_height = image_resizer.resize(
+		bagman_data.state.current_image.width,
+		bagman_data.state.current_image.height,
 		window_dims.pixel_width,
-		window_dims.pixel_height
+		window_dims.pixel_height,
+		bagman_data.state.current_image.object_fit
 	)
 	overrides.background[2].width = new_width
 	overrides.background[2].height = new_height
+	bagman_data.state.current_image.width = new_width
+	bagman_data.state.current_image.height = new_height
 	window:set_config_overrides(overrides)
 end)
 
