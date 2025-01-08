@@ -68,6 +68,12 @@ bagman.setup({
             path = os.getenv("HOME") .. "/path/to/home/subdir",
             vertical_align = "Top", -- default: "Middle"
             horizontal_align = "Right", -- default: "Center"
+            opacity = 0.1, -- default: 1.0
+            hsb = { 
+                hue = 1.0, -- default: 1.0
+                saturation = 1.0, -- default: 1.0
+                brightness = 1.0, -- default: 1.0
+            }, 
             object_fit = "Fill", -- default: "Contain"
         },
 
@@ -82,12 +88,11 @@ bagman.setup({
         -- as string
         "/abs/path/to/image",
 
-        -- as a table with options
+        -- as a table with some options
         {
             path = os.getenv("HOME") .. "/path/to/another/image.jpg",
-            vertical_align = "Top", -- default: "Middle"
-            horizontal_align = "Right", -- default: "Center"
-            object_fit = "Fill", -- default: "Contain"
+            vertical_align = "Bottom", -- default: "Middle"
+            object_fit = "ScaleDown", -- default: "Contain"
         },
 
         -- as a table without the options
@@ -123,15 +128,30 @@ that this is readonly and even if the return value's fields are reassigned, it
 will not affect any bagman functionality.
 
 Fields:
-1. `width`: current width of the image as a background layer (not the original
-width)
-2. `height`: current width of the image as a background layer (not the original
-height)
-3. `path`: path to image file
-4. `object_fit`: current object fit used by the background image
-5. `vertical_align`: current vertical alignment used by the background image
-6. `horizontal_align`: current horizontal alignment used by the background
-image 
+1. `height`
+    - height of the image in px
+2. `horizontal_align`
+    - valid values: `"Left"`, `"Center"`, `"Middle"`
+    - same as wezterm's
+3. `hsb`
+    - fields: `hue`, `saturation`, `brightness`
+    - valid values for fields: from `0.0` above
+    - same as wezterm's
+4. `object_fit`
+    - how the image should be resized to fit the window
+    - valid values: `"Contain"`, `"Cover"`, `"Fill"`, `"None"`, `"ScaleDown"`
+    - these behave the same as css's
+    [`object-fit`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit)
+5. `opacity` 
+    - valid values: from `0.0` to `1.0`
+    - same as wezterm's
+6. `path`
+    - absolute path to image file
+7. `vertical_align`
+    - valid values: `"Top"`, `"Middle"`, `"Bottom"`
+    - same as wezterm's
+8. `width`
+    - width of the image in px
 
 ### `bagman.action.next_image()`
 _Alias for: `wezterm.action.EmitEvent("bagman.next-image")`_

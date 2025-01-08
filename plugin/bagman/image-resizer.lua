@@ -8,7 +8,7 @@ local M = {}
 ---@param image_height number
 ---@param window_width number
 ---@param window_height number
----@param object_fit object_fit_opts
+---@param object_fit ObjectFit
 ---@return number new_width
 ---@return number new_height
 function M.resize(image_width, image_height, window_width, window_height, object_fit)

@@ -9,13 +9,15 @@ local M = {}
 -- OPTION DEFAULTS {{{
 -- defaults for various bagman data
 local default = {
-	interval = 30 * 60,
+	auto_cycle = true,
 	backdrop = "#000000",
 	change_tab_colors = false,
-	is_looping = true,
-	vertical_align = "Middle",
 	horizontal_align = "Center",
+	hsb = { hue = 1.0, saturation = 1.0, brightness = 1.0 },
+	interval = 30 * 60,
 	object_fit = "Contain",
+	opacity = 1.0,
+	vertical_align = "Middle",
 }
 ---}}}
 
@@ -42,7 +44,7 @@ local bagman_data = {
 		-- this manually by `wezterm.action.EmitEvent("bagman.start-loop")` or
 		-- `bagman.action.start_loop()`. Should only ever have 1 loop. If the event
 		-- `bagman.start_loop` gets emitted again, it won't do anything.
-		is_looping = true,
+		auto_cycle = true,
 		-- For limiting repeat triggering `bagman.next-image` event whenever an error is
 		-- encountered. Should only be incremented and reset in the 'bagman.next-image' event
 		-- handler.
@@ -50,12 +52,14 @@ local bagman_data = {
 		-- current background image set by bagman. Only really used when resizing window since I
 		-- need to know what object fit an image has.
 		current_image = {
-			path = "",
-			width = 0,
 			height = 0,
-			vertical_align = default.vertical_align,
 			horizontal_align = default.horizontal_align,
+			hsb = default.hsb,
 			object_fit = default.object_fit,
+			opacity = default.opacity,
+			path = "",
+			vertical_align = default.vertical_align,
+			width = 0,
 		},
 	},
 }
@@ -68,7 +72,7 @@ local bagman_data = {
 --- anything.
 ---@param window Window used to change the background image
 local function loop_forever(window)
-	if not bagman_data.state.is_looping then
+	if not bagman_data.state.auto_cycle then
 		wezterm.log_info("BAGMAN INFO: stopped loop.")
 		return
 	end
@@ -111,9 +115,11 @@ end
 ---@param dirs table<number, BagmanCleanDir> to get random images from a random dir in dirs
 ---@param more_images table<number, BagmanCleanImage> additional images to choose from
 ---@return string image path to image file
----@return vertical_align_opts vertical_align
----@return horizontal_align_opts horizontal_align
----@return object_fit_opts object_fit
+---@return VerticalAlign vertical_align
+---@return HorizontalAlign horizontal_align
+---@return f32 opacity
+---@return Hsb hsb
+---@return ObjectFit object_fit
 ---@return boolean ok successful execution
 local function random_image_from_dirs(dirs, more_images)
 	---@type table<number, string | BagmanCleanImage>
@@ -127,13 +133,21 @@ local function random_image_from_dirs(dirs, more_images)
 	table.move(more_images, 1, #more_images, #images + 1, images)
 	if #images == 0 then
 		wezterm.log_error("BAGMAN ERROR: no images given by user. Try checking the `dirs` and/or `images` setup option")
-		return "", default.vertical_align, default.horizontal_align, default.object_fit, false
+		return "",
+			default.vertical_align,
+			default.horizontal_align,
+			default.opacity,
+			default.hsb,
+			default.object_fit,
+			false
 	end
 
 	local image = images[math.random(#images)]
 	return image.path or image,
 		image.vertical_align or dir.vertical_align or default.vertical_align,
 		image.horizontal_align or dir.horizontal_align or default.horizontal_align,
+		image.opacity or dir.opacity or default.opacity,
+		image.hsb or dir.hsb or default.hsb,
 		image.object_fit or dir.object_fit or default.object_fit,
 		true
 end
@@ -141,7 +155,7 @@ end
 ---@param image string | BagmanCleanImage
 ---@param window_width number window's width in px (`window:get_dimensions().pixel_width`)
 ---@param window_height number window's height in px (`window:get_dimensions().pixel_height`)
----@param object_fit object_fit_opts
+---@param object_fit ObjectFit
 ---@return number width image width
 ---@return number height image height
 ---@return bool ok successful execution
@@ -165,6 +179,8 @@ end
 ---@param vertical_align string
 ---@param horizontal_align string
 ---@param object_fit string for keeping track of object_fit state between window resizes
+---@param hsb Hsb,
+---@param opacity f32
 ---@param colors? Palette tab line colorscheme
 local function set_bg_image(
 	window,
@@ -173,6 +189,8 @@ local function set_bg_image(
 	image_height,
 	vertical_align,
 	horizontal_align,
+	opacity,
+	hsb,
 	object_fit,
 	colors
 )
@@ -191,13 +209,12 @@ local function set_bg_image(
 			source = {
 				File = image,
 			},
-			opacity = 0.10,
+			opacity = opacity,
 			height = image_height,
 			width = image_width,
 			vertical_align = vertical_align,
 			horizontal_align = horizontal_align,
-			---@diagnostic disable-next-line: undefined-global
-			hsb = dimmer,
+			hsb = hsb,
 			repeat_x = "NoRepeat",
 			repeat_y = "NoRepeat",
 		},
@@ -205,12 +222,14 @@ local function set_bg_image(
 	window:set_config_overrides(overrides)
 
 	bagman_data.state.current_image = {
-		path = image,
 		height = image_height,
-		width = image_width,
-		vertical_align = vertical_align,
 		horizontal_align = horizontal_align,
+		hsb = hsb,
 		object_fit = object_fit,
+		opacity = opacity,
+		path = image,
+		vertical_align = vertical_align,
+		width = image_width,
 	}
 end
 
@@ -235,17 +254,21 @@ function M.setup(opts)
 			-- continue
 		elseif type(dirty_dir) == "string" then
 			clean_dirs[i] = {
+				horizontal_align = default.horizontal_align,
+				hsb = default.hsb,
+				object_fit = default.object_fit,
+				opacity = default.opacity,
 				path = dirty_dir,
 				vertical_align = default.vertical_align,
-				horizontal_align = default.horizontal_align,
-				object_fit = default.object_fit,
 			}
 		else
 			clean_dirs[i] = {
+				horizontal_align = dirty_dir.horizontal_align or default.horizontal_align,
+				hsb = dirty_dir.hsb or default.hsb,
+				object_fit = dirty_dir.object_fit or default.object_fit,
+				opacity = dirty_dir.opacity or default.opacity,
 				path = dirty_dir.path,
 				vertical_align = dirty_dir.vertical_align or default.vertical_align,
-				horizontal_align = dirty_dir.horizontal_align or default.horizontal_align,
-				object_fit = dirty_dir.object_fit or default.object_fit,
 			}
 		end
 	end
@@ -258,17 +281,21 @@ function M.setup(opts)
 			-- continue
 		elseif type(dirty_image) == "string" then
 			clean_images[i] = {
+				horizontal_align = default.horizontal_align,
+				hsb = default.hsb,
+				object_fit = default.object_fit,
+				opacity = default.opacity,
 				path = dirty_image,
 				vertical_align = default.vertical_align,
-				horizontal_align = default.horizontal_align,
-				object_fit = default.object_fit,
 			}
 		else
 			clean_images[i] = {
+				horizontal_align = dirty_image.horizontal_align or default.horizontal_align,
+				hsb = dirty_image.hsb or default.hsb,
+				object_fit = dirty_image.object_fit or default.object_fit,
+				opacity = dirty_image.opacity or default.opacity,
 				path = dirty_image.path,
 				vertical_align = dirty_image.vertical_align or default.vertical_align,
-				horizontal_align = dirty_image.horizontal_align or default.horizontal_align,
-				object_fit = dirty_image.object_fit or default.object_fit,
 			}
 		end
 	end
@@ -281,13 +308,13 @@ function M.setup(opts)
 		change_tab_colors = opts.change_tab_colors or default.change_tab_colors,
 	}
 	if opts.auto_cycle then
-		bagman_data.state.is_looping = true
+		bagman_data.state.auto_cycle = true
 		wezterm.on("gui-startup", function(cmd)
 			local _, _, window = wezterm.mux.spawn_window(cmd or {})
 			loop_forever(window:gui_window())
 		end)
 	else
-		bagman_data.state.is_looping = false
+		bagman_data.state.auto_cycle = false
 	end
 end
 
@@ -346,20 +373,20 @@ M.action = {
 -- EVENT HANDLERS {{{
 
 wezterm.on("bagman.start-loop", function(window)
-	if bagman_data.state.is_looping then
+	if bagman_data.state.auto_cycle then
 		wezterm.log_error("BAGMAN ERROR: only one bagman loop may exist.")
 		return
 	end
-	bagman_data.state.is_looping = true
+	bagman_data.state.auto_cycle = true
 	loop_forever(window)
 end)
 
 wezterm.on("bagman.stop-loop", function()
-	if not bagman_data.state.is_looping then
+	if not bagman_data.state.auto_cycle then
 		wezterm.log_error("BAGMAN ERROR: no loop is currently running.")
 		return
 	end
-	bagman_data.state.is_looping = false
+	bagman_data.state.auto_cycle = false
 	wezterm.log_info("BAGMAN INFO: stopped signal recieved.")
 end)
 
@@ -372,7 +399,7 @@ wezterm.on("bagman.next-image", function(window)
 		return
 	end
 
-	local image, vertical_align, horizontal_align, object_fit, ok =
+	local image, vertical_align, horizontal_align, opacity, hsb, object_fit, ok =
 		random_image_from_dirs(bagman_data.config.dirs, bagman_data.config.images)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
@@ -396,7 +423,18 @@ wezterm.on("bagman.next-image", function(window)
 		}
 	end
 
-	set_bg_image(window, image, scaled_width, scaled_height, vertical_align, horizontal_align, object_fit, colors)
+	set_bg_image(
+		window,
+		image,
+		scaled_width,
+		scaled_height,
+		vertical_align,
+		horizontal_align,
+		opacity,
+		hsb,
+		object_fit,
+		colors
+	)
 	bagman_data.state.retries = 0
 end)
 
@@ -406,9 +444,11 @@ end)
 ---@param opts? BagmanSetImageOptions options to scale and position image
 wezterm.on("bagman.set-image", function(window, image, opts)
 	opts = opts or {}
-	opts.vertical_align = opts.vertical_align or default.vertical_align
 	opts.horizontal_align = opts.horizontal_align or default.horizontal_align
+	opts.hsb = opts.hsb or default.hsb
 	opts.object_fit = opts.object_fit or default.object_fit
+	opts.opacity = opts.opacity or default.opacity
+	opts.vertical_align = opts.vertical_align or default.vertical_align
 
 	if not opts.width or not opts.height then
 		local image_width, image_height, err = image_size.size(image)
@@ -441,6 +481,8 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 		opts.height,
 		opts.vertical_align,
 		opts.horizontal_align,
+		opts.opacity,
+		opts.hsb,
 		opts.object_fit,
 		colors
 	)
