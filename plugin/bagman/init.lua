@@ -219,7 +219,7 @@ end
 -- EXPORTED MEMBERS {{{
 
 -- Changes background image based on passed in configuration.
--- If `loop_on_startup` is true, this will create an event handler during [gui-startup](https://wezfurlong.org/wezterm/config/lua/gui-events/gui-startup.html).
+-- If `auto_cycle` is true, this will create an event handler during [gui-startup](https://wezfurlong.org/wezterm/config/lua/gui-events/gui-startup.html).
 -- If `change_tab_colors` is true, this will change `tab_bar` colors based off of the current image.
 ---@param opts BagmanSetupOptions
 function M.setup(opts)
@@ -280,7 +280,7 @@ function M.setup(opts)
 		backdrop = opts.backdrop or default.backdrop,
 		change_tab_colors = opts.change_tab_colors or default.change_tab_colors,
 	}
-	if opts.loop_on_startup then
+	if opts.auto_cycle then
 		bagman_data.state.is_looping = true
 		wezterm.on("gui-startup", function(cmd)
 			local _, _, window = wezterm.mux.spawn_window(cmd or {})

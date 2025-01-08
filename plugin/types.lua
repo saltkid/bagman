@@ -6,7 +6,7 @@
 ---@field images table<number, BagmanDirtyImage | string> list of image files
 ---@field interval? number interval in seconds for changing the background
 ---@field backdrop? HexColor | AnsiColor bottom layer color to tint the image on top of it
----@field loop_on_startup? boolean whether to immediately start changing background every interval
+---@field auto_cycle? boolean whether to immediately start changing background every interval
 ---seconds on startup
 ---@field change_tab_colors? boolean whether to change tab bar colors based on the current background
 ---image

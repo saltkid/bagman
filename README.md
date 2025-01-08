@@ -109,7 +109,7 @@ bagman.setup({
     -- Whether to immediately start changing bg image every <interval> seconds
     -- on startup.
     -- default: true
-    start_looping = true,
+    auto_cycle = true,
 
     -- whether to change tab_bar colors based off the current background image
     -- default: false
@@ -156,12 +156,12 @@ _Alias for: `wezterm.action.EmitEvent("bagman.start-loop")`_
 
 Starts the auto cycle bg images loop at every user set interval. Only one loop
 may be present so triggering this event again will safely do nothing. If
-`start_looping` setup option is set to true, triggering this action will not do
-anything since `start_looping = true` will create an image cycling loop on
+`auto_cycle` setup option is set to true, triggering this action will not do
+anything since `auto_cycle = true` will create an image cycling loop on
 startup.
 ```lua
 bagman.setup({
-    start_looping = true, -- will start the image cycle loop on startup
+    auto_cycle = true, -- will start the image cycle loop on startup
     dirs = { ... },
     ...
 })
@@ -240,12 +240,12 @@ _Alias for: `wezterm.emit("bagman.start-loop", window)`_
 
 Starts the auto cycle bg images loop at every user set interval. Only one loop
 may be present so manually emitting this event again will safely do nothing. If
-`start_looping` setup option is set to true, triggering this action will not do
-anything since `start_looping = true` will create an image cycling loop on
+`auto_cycle` setup option is set to true, triggering this action will not do
+anything since `auto_cycle = true` will create an image cycling loop on
 startup.
 ```lua
 bagman.setup({
-    start_looping = true, -- will start the image cycle loop on startup
+    auto_cycle = true, -- will start the image cycle loop on startup
     dirs = { ... },
     ...
 })
