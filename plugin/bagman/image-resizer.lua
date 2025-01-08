@@ -46,11 +46,10 @@ end
 ---@return number width
 ---@return number height
 function M.contain_dimensions(image_width, image_height, window_width, window_height)
-	if image_width > image_height then
-		return window_width, math.floor(window_width * image_height / image_width)
-	else
-		return math.floor(window_height * image_width / image_height), window_height
-	end
+	local scale_width = window_width / image_width
+	local scale_height = window_height / image_height
+	local scale = math.min(scale_width, scale_height)
+	return math.floor(image_width * scale), math.floor(image_height * scale)
 end
 
 ---Computes css's `object-fit: cover` width and height of an image using current window width and
@@ -65,11 +64,10 @@ end
 ---@return number width
 ---@return number height
 function M.cover_dimensions(image_width, image_height, window_width, window_height)
-	if image_width > image_height then
-		return math.floor(window_height * image_width / image_height), window_height
-	else
-		return window_width, math.floor(window_width * image_height / image_width)
-	end
+	local scale_width = window_width / image_width
+	local scale_height = window_height / image_height
+	local scale = math.max(scale_width, scale_height)
+	return math.floor(image_width * scale), math.floor(image_height * scale)
 end
 
 return M
