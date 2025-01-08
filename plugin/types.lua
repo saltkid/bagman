@@ -35,6 +35,7 @@
 ---@field object_fit? ObjectFit
 ---@field opacity? f32 from 0.0 to 1.0
 ---@field path string
+---@field scale? f32
 ---@field vertical_align? VerticalAlign
 
 ---An [BagmanDirtyDir] cleaned by setup()
@@ -44,6 +45,7 @@
 ---@field object_fit ObjectFit
 ---@field opacity f32 from 0.0 to 1.0
 ---@field path string
+---@field scale f32
 ---@field vertical_align VerticalAlign
 
 ---an image file object in images passed in setup()
@@ -53,6 +55,7 @@
 ---@field object_fit? ObjectFit
 ---@field opacity? f32 from 0.0 to 1.0
 ---@field path string
+---@field scale? f32
 ---@field vertical_align? VerticalAlign
 
 ---An [BagmanDirtyImage] cleaned by setup()
@@ -62,6 +65,7 @@
 ---@field object_fit ObjectFit
 ---@field opacity f32 from 0.0 to 1.0
 ---@field path string
+---@field scale f32
 ---@field vertical_align VerticalAlign
 
 ---Holds the local config and state of BGChanger
@@ -83,6 +87,7 @@
 ---@field object_fit ObjectFit
 ---@field opacity f32 from 0.0 to 1.0
 ---@field path string
+---@field scale f32
 ---@field vertical_align VerticalAlign
 ---@field width number
 
@@ -92,5 +97,6 @@
 ---@field hsb Hsb valid values for its fields are from 0.0 to above
 ---@field object_fit ObjectFit
 ---@field opacity f32 from 0.0 to 1.0
+---@field scale f32
 ---@field vertical_align VerticalAlign
 ---@field width number

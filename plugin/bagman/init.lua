@@ -17,6 +17,7 @@ local default = {
 	interval = 30 * 60,
 	object_fit = "Contain",
 	opacity = 1.0,
+	scale = 1.0,
 	vertical_align = "Middle",
 }
 ---}}}
@@ -58,6 +59,7 @@ local bagman_data = {
 			object_fit = default.object_fit,
 			opacity = default.opacity,
 			path = "",
+			scale = default.scale,
 			vertical_align = default.vertical_align,
 			width = 0,
 		},
@@ -120,6 +122,7 @@ end
 ---@return f32 opacity
 ---@return Hsb hsb
 ---@return ObjectFit object_fit
+---@return f32 scale
 ---@return boolean ok successful execution
 local function random_image_from_dirs(dirs, more_images)
 	---@type table<number, string | BagmanCleanImage>
@@ -139,6 +142,7 @@ local function random_image_from_dirs(dirs, more_images)
 			default.opacity,
 			default.hsb,
 			default.object_fit,
+			default.scale,
 			false
 	end
 
@@ -149,6 +153,7 @@ local function random_image_from_dirs(dirs, more_images)
 		image.opacity or dir.opacity or default.opacity,
 		image.hsb or dir.hsb or default.hsb,
 		image.object_fit or dir.object_fit or default.object_fit,
+		image.scale or dir.scale or default.scale,
 		true
 end
 
@@ -178,9 +183,10 @@ end
 ---@param image_height number
 ---@param vertical_align string
 ---@param horizontal_align string
----@param object_fit string for keeping track of object_fit state between window resizes
----@param hsb Hsb,
 ---@param opacity f32
+---@param hsb Hsb,
+---@param object_fit string for keeping track of object_fit state between window resizes
+---@param scale f32
 ---@param colors? Palette tab line colorscheme
 local function set_bg_image(
 	window,
@@ -192,6 +198,7 @@ local function set_bg_image(
 	opacity,
 	hsb,
 	object_fit,
+	scale,
 	colors
 )
 	local overrides = window:get_config_overrides() or {}
@@ -210,8 +217,8 @@ local function set_bg_image(
 				File = image,
 			},
 			opacity = opacity,
-			height = image_height,
-			width = image_width,
+			height = image_height * scale,
+			width = image_width * scale,
 			vertical_align = vertical_align,
 			horizontal_align = horizontal_align,
 			hsb = hsb,
@@ -228,6 +235,7 @@ local function set_bg_image(
 		object_fit = object_fit,
 		opacity = opacity,
 		path = image,
+		scale = scale,
 		vertical_align = vertical_align,
 		width = image_width,
 	}
@@ -259,6 +267,7 @@ function M.setup(opts)
 				object_fit = default.object_fit,
 				opacity = default.opacity,
 				path = dirty_dir,
+				scale = default.scale,
 				vertical_align = default.vertical_align,
 			}
 		else
@@ -268,6 +277,7 @@ function M.setup(opts)
 				object_fit = dirty_dir.object_fit or default.object_fit,
 				opacity = dirty_dir.opacity or default.opacity,
 				path = dirty_dir.path,
+				scale = dirty_dir.scale or default.scale,
 				vertical_align = dirty_dir.vertical_align or default.vertical_align,
 			}
 		end
@@ -286,6 +296,7 @@ function M.setup(opts)
 				object_fit = default.object_fit,
 				opacity = default.opacity,
 				path = dirty_image,
+				scale = default.scale,
 				vertical_align = default.vertical_align,
 			}
 		else
@@ -295,6 +306,7 @@ function M.setup(opts)
 				object_fit = dirty_image.object_fit or default.object_fit,
 				opacity = dirty_image.opacity or default.opacity,
 				path = dirty_image.path,
+				scale = dirty_image.scale or default.scale,
 				vertical_align = dirty_image.vertical_align or default.vertical_align,
 			}
 		end
@@ -399,7 +411,7 @@ wezterm.on("bagman.next-image", function(window)
 		return
 	end
 
-	local image, vertical_align, horizontal_align, opacity, hsb, object_fit, ok =
+	local image, vertical_align, horizontal_align, opacity, hsb, object_fit, scale, ok =
 		random_image_from_dirs(bagman_data.config.dirs, bagman_data.config.images)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
@@ -433,6 +445,7 @@ wezterm.on("bagman.next-image", function(window)
 		opacity,
 		hsb,
 		object_fit,
+		scale,
 		colors
 	)
 	bagman_data.state.retries = 0
@@ -449,6 +462,7 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 	opts.object_fit = opts.object_fit or default.object_fit
 	opts.opacity = opts.opacity or default.opacity
 	opts.vertical_align = opts.vertical_align or default.vertical_align
+	opts.scale = opts.scale or default.scale
 
 	if not opts.width or not opts.height then
 		local image_width, image_height, err = image_size.size(image)
@@ -484,6 +498,7 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 		opts.opacity,
 		opts.hsb,
 		opts.object_fit,
+		opts.scale,
 		colors
 	)
 	bagman_data.state.retries = 0
