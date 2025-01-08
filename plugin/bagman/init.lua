@@ -516,8 +516,8 @@ wezterm.on("window-resized", function(window)
 		window_dims.pixel_height,
 		bagman_data.state.current_image.object_fit
 	)
-	overrides.background[2].width = new_width
-	overrides.background[2].height = new_height
+	overrides.background[2].width = new_width * bagman_data.state.current_image.scale
+	overrides.background[2].height = new_height * bagman_data.state.current_image.scale
 	window:set_config_overrides(overrides)
 end)
 
