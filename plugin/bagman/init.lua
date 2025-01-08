@@ -111,9 +111,9 @@ end
 ---@param dirs table<number, BagmanCleanDir> to get random images from a random dir in dirs
 ---@param more_images table<number, BagmanCleanImage> additional images to choose from
 ---@return string image path to image file
----@return "Top" | "Middle" | "Bottom" vertical_align
----@return "Left" | "Center" | "Right" horizontal_align
----@return "Contain" | "Cover" | "Fill" object_fit
+---@return vertical_align_opts vertical_align
+---@return horizontal_align_opts horizontal_align
+---@return object_fit_opts object_fit
 ---@return boolean ok successful execution
 local function random_image_from_dirs(dirs, more_images)
 	---@type table<number, string | BagmanCleanImage>
@@ -141,14 +141,14 @@ end
 ---@param image string | BagmanCleanImage
 ---@param window_width number window's width in px (`window:get_dimensions().pixel_width`)
 ---@param window_height number window's height in px (`window:get_dimensions().pixel_height`)
----@param object_fit "Contain" | "Cover" | "Fill"
+---@param object_fit object_fit_opts
 ---@return number width image width
 ---@return number height image height
 ---@return bool ok successful execution
 local function scale_image(image, window_width, window_height, object_fit)
 	local image_width, image_height, err = image_size.size(image.path or image)
 	if err then
-		wezterm.log_info(err)
+		wezterm.log_error("BAGMAN ERROR:", err)
 		return 0, 0, false
 	end
 
@@ -413,7 +413,7 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 	if not opts.width or not opts.height then
 		local image_width, image_height, err = image_size.size(image)
 		if err then
-			wezterm.log_info(err)
+			wezterm.log_error("BAGMAN ERROR:", err)
 			return
 		end
 		local window_dims = window:get_dimensions()
@@ -461,8 +461,6 @@ wezterm.on("window-resized", function(window)
 	)
 	overrides.background[2].width = new_width
 	overrides.background[2].height = new_height
-	bagman_data.state.current_image.width = new_width
-	bagman_data.state.current_image.height = new_height
 	window:set_config_overrides(overrides)
 end)
 

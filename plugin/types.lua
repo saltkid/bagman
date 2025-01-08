@@ -20,33 +20,41 @@
 ---@field backdrop HexColor | AnsiColor
 ---@field change_tab_colors boolean whether to change tab bar colors based on the current background
 
+-- GENERAL OPTIONS {{{
+
+---@alias vertical_align_opts "Top" | "Middle" | "Bottom"
+---@alias horizontal_align_opts "Left" | "Center" | "Right"
+---@alias object_fit_opts "Contain" | "Cover" | "Fill" | "None" | "ScaleDown"
+
+-- }}}
+
 ---a directory object in directories passed in setup()
 ---@class BagmanDirtyDir
 ---@field path string
----@field vertical_align? "Top" | "Middle" | "Bottom"
----@field horizontal_align? "Left" | "Center" | "Right"
----@field object_fit? "Contain" | "Cover" | "Fill"
+---@field vertical_align? vertical_align_opts
+---@field horizontal_align? horizontal_align_opts
+---@field object_fit? object_fit_opts
 
 ---An [BagmanDirtyDir] cleaned by setup()
 ---@class BagmanCleanDir config with assigned defaults
 ---@field path string
----@field vertical_align "Top" | "Middle" | "Bottom"
----@field horizontal_align "Left" | "Center" | "Right"
----@field object_fit "Contain" | "Cover" | "Fill"
+---@field vertical_align vertical_align_opts
+---@field horizontal_align horizontal_align_opts
+---@field object_fit object_fit_opts
 
 ---an image file object in images passed in setup()
 ---@class BagmanDirtyImage
 ---@field path string
----@field vertical_align? "Top" | "Middle" | "Bottom"
----@field horizontal_align? "Left" | "Center" | "Right"
----@field object_fit? "Contain" | "Cover" | "Fill"
+---@field vertical_align? vertical_align_opts
+---@field horizontal_align? horizontal_align_opts
+---@field object_fit? object_fit_opts
 
 ---An [BagmanDirtyImage] cleaned by setup()
 ---@class BagmanCleanImage config with assigned defaults
 ---@field path string
----@field vertical_align "Top" | "Middle" | "Bottom"
----@field horizontal_align "Left" | "Center" | "Right"
----@field object_fit "Contain" | "Cover" | "Fill"
+---@field vertical_align vertical_align_opts
+---@field horizontal_align horizontal_align_opts
+---@field object_fit object_fit_opts
 
 ---Holds the local config and state of BGChanger
 ---@class BagmanData
@@ -58,10 +66,19 @@
 ---@class BagmanState
 ---@field is_looping boolean
 ---@field retries number
+---@field current_image BagmanCurrentImage
+
+---@class BagmanCurrentImage
+---@field path string
+---@field vertical_align vertical_align_opts
+---@field horizontal_align horizontal_align_opts
+---@field object_fit object_fit_opts
+---@field width number
+---@field height number
 
 ---@class BagmanSetImageOptions
----@field vertical_align? "Top" | "Middle" | "Bottom"
----@field horizontal_align? "Left" | "Center" | "Right"
----@field object_fit? "Contain" | "Cover" | "Fill"
+---@field vertical_align? vertical_align_opts
+---@field horizontal_align? horizontal_align_opts
+---@field object_fit? object_fit_opts
 ---@field width? number
 ---@field height? number

@@ -8,7 +8,7 @@ local M = {}
 ---@param image_height number
 ---@param window_width number
 ---@param window_height number
----@param object_fit "Contain" | "Cover" | "Fill"
+---@param object_fit object_fit_opts
 ---@return number new_width
 ---@return number new_height
 function M.resize(image_width, image_height, window_width, window_height, object_fit)
@@ -20,6 +20,15 @@ function M.resize(image_width, image_height, window_width, window_height, object
 		return new_width, new_height
 	elseif "Fill" == object_fit then
 		return window_width, window_height
+	elseif "None" == object_fit then
+		return image_width, image_height
+	elseif "ScaleDown" == object_fit then
+		if image_width > window_width or image_height > window_height then
+			local new_width, new_height = M.contain_dimensions(image_width, image_height, window_width, window_height)
+			return new_width, new_height
+		else
+			return image_width, image_height
+		end
 	else
 		wezterm.log_error("BAGMAN IMAGE HANDLER ERROR: unknown object_fit:", object_fit)
 		return image_width, image_height
