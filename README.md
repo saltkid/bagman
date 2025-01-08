@@ -43,6 +43,7 @@ return config
 ## Table of Contents
 - [`apply_to_config(config)`](#bagmanapply_to_configconfig)
 - [`setup(opts)`](#bagmansetupopts)
+- [`current_image()`](#bagmancurrent_image)
 - [`action.next_image()`](#bagmanactionnext_image)
 - [`action.start_loop()`](#bagmanactionstart_loop)
 - [`action.stop_loop()`](#bagmanactionstop_loop)
@@ -55,6 +56,8 @@ return config
 bagman only registers event listeners so `bagman.apply_to_config(config)` does
 nothing for now.
 ### `bagman.setup(opts)`
+To see all possible values for the fields of `dirs` and `images` entries,
+please see the [current_image](#bagmancurrent_image) section.
 ```lua
 bagman.setup({
     -- pass in directories that contain images for bagman to search in
