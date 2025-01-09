@@ -161,26 +161,30 @@ end
 ---@param window_width number window's width in px (`window:get_dimensions().pixel_width`)
 ---@param window_height number window's height in px (`window:get_dimensions().pixel_height`)
 ---@param object_fit ObjectFit
----@return number width image width
----@return number height image height
+---@return number width original image width
+---@return number height original image height
+---@return number scaled_width scaled image width
+---@return number scaled_height scaled image height
 ---@return bool ok successful execution
 local function scale_image(image, window_width, window_height, object_fit)
 	local image_width, image_height, err = image_size.size(image.path or image)
 	if err then
 		wezterm.log_error("BAGMAN ERROR:", err)
-		return 0, 0, false
+		return 0, 0, 0, 0, false
 	end
 
 	local scaled_width, scaled_height =
 		image_resizer.resize(image_width, image_height, window_width, window_height, image.object_fit or object_fit)
-	return scaled_width, scaled_height, true
+	return image_width, image_height, scaled_width, scaled_height, true
 end
 
 -- Set the passed in image and metadata as the background image for the passed in window object.
 ---@param window Window used to change the background image
 ---@param image string path to image
----@param image_width number
----@param image_height number
+---@param image_width number original image width
+---@param image_height number original image height
+---@param scaled_image_width number
+---@param scaled_image_height number
 ---@param vertical_align string
 ---@param horizontal_align string
 ---@param opacity f32
@@ -193,6 +197,8 @@ local function set_bg_image(
 	image,
 	image_width,
 	image_height,
+	scaled_image_width,
+	scaled_image_height,
 	vertical_align,
 	horizontal_align,
 	opacity,
@@ -217,8 +223,8 @@ local function set_bg_image(
 				File = image,
 			},
 			opacity = opacity,
-			height = image_height * scale,
-			width = image_width * scale,
+			height = scaled_image_height * scale,
+			width = scaled_image_width * scale,
 			vertical_align = vertical_align,
 			horizontal_align = horizontal_align,
 			hsb = hsb,
@@ -420,7 +426,7 @@ wezterm.on("bagman.next-image", function(window)
 
 	local window_dims = window:get_dimensions()
 	---@diagnostic disable-next-line: redefined-local
-	local scaled_width, scaled_height, ok =
+	local image_width, image_height, scaled_image_width, scaled_image_height, ok =
 		scale_image(image, window_dims.pixel_width, window_dims.pixel_height, object_fit)
 	if not ok then
 		bagman_data.state.retries = bagman_data.state.retries + 1
@@ -438,8 +444,10 @@ wezterm.on("bagman.next-image", function(window)
 	set_bg_image(
 		window,
 		image,
-		scaled_width,
-		scaled_height,
+		image_width,
+		image_height,
+		scaled_image_width,
+		scaled_image_height,
 		vertical_align,
 		horizontal_align,
 		opacity,
@@ -464,8 +472,10 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 	opts.vertical_align = opts.vertical_align or default.vertical_align
 	opts.scale = opts.scale or default.scale
 
+	local image_width, image_height = opts.width, opts.height
 	if not opts.width or not opts.height then
-		local image_width, image_height, err = image_size.size(image)
+		local err
+		image_width, image_height, err = image_size.size(image)
 		if err then
 			wezterm.log_error("BAGMAN ERROR:", err)
 			return
@@ -491,6 +501,8 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 	set_bg_image(
 		window,
 		image,
+		image_width,
+		image_height,
 		opts.width,
 		opts.height,
 		opts.vertical_align,
