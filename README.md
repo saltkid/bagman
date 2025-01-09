@@ -66,7 +66,7 @@ bagman.setup({
         "/abs/path/to/dir",
 
         -- or you can pass it in as a table where you can define options for
-        -- images under that directory.
+        -- images under that directory. Here are all the available options:
         {
             path = os.getenv("HOME") .. "/path/to/home/subdir",
             vertical_align = "Top", -- default: "Middle"
@@ -230,11 +230,13 @@ options to scale and position the image however you'd like. Specifically, the
 options are as follows:
 | option | default value |
 |--------|---------------|
-| `vertical_align` | `"Middle"` |
-| `horizontal_align` | `"Center"` |
-| `object_fit` | `"Contain"` |
-| `width` | `nil` |
 | `height` | `nil` |
+| `horizontal_align` | `"Center"` |
+| `hsb` | `{ hue = 1.0, saturation = 1.0, brightness = 1.0 }` |
+| `object_fit` | `"Contain"` |
+| `opacity` | `1.0` |
+| `vertical_align` | `"Middle"` |
+| `width` | `nil` |
 
 Note that if no width and height is given, the image will be scaled according
 to the `object_fit` option. Same goes for when only either width or height is
