@@ -260,6 +260,12 @@ function M.setup(opts)
 		wezterm.log_error("BAGMAN ERROR: No directories and images provided for background images. args: ", opts)
 	end
 
+	-- clean auto_cycle option
+	if type(opts.auto_cycle) == "nil" then
+		opts.auto_cycle = default.auto_cycle
+	end
+
+	-- clean dirs option
 	---@type table<number, BagmanCleanDir>
 	local clean_dirs = {}
 	opts.dirs = opts.dirs or {}
@@ -290,6 +296,7 @@ function M.setup(opts)
 		end
 	end
 
+	-- clean images option
 	---@type table<number, BagmanCleanImage>
 	local clean_images = {}
 	opts.images = opts.images or {}
@@ -320,6 +327,7 @@ function M.setup(opts)
 		end
 	end
 
+	-- clean backdrop option
 	---@type Backdrop
 	local clean_backdrop
 	if type(opts.backdrop) == "nil" then
@@ -335,6 +343,7 @@ function M.setup(opts)
 			opacity = opts.backdrop.opacity or default.backdrop.opacity,
 		}
 	end
+
 	-- setup config data with cleaned data
 	bagman_data.config = {
 		backdrop = clean_backdrop,
