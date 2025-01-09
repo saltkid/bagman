@@ -6,13 +6,15 @@
 ---@alias HorizontalAlign "Left" | "Center" | "Right"
 ---@alias ObjectFit "Contain" | "Cover" | "Fill" | "None" | "ScaleDown"
 ---@alias Hsb { hue: f32, saturation: f32, brightness: f32 }
+---@alias Backdrop  { color: HexColor | AnsiColor, opacity: f32 }
+
 -- }}}
 
 ---Config from user passed to setup()
 ---@class BagmanSetupOptions
 ---@field auto_cycle? boolean whether to immediately start changing background every interval
 ---seconds on startup
----@field backdrop? HexColor | AnsiColor bottom layer color to tint the image on top of it
+---@field backdrop? Backdrop | HexColor | AnsiColor
 ---@field dirs table<number, BagmanDirtyDir | string> list of directories that contain images
 ---@field change_tab_colors? boolean whether to change tab bar colors based on the current background
 ---image
@@ -22,7 +24,7 @@
 ---A [BagmanSetupOptions] with optional values filled in with defaults.
 ---Holds the local config needed to determine how to change the background
 ---@class BagmanConfig
----@field backdrop HexColor | AnsiColor
+---@field backdrop Backdrop
 ---@field change_tab_colors boolean whether to change tab bar colors based on the current background
 ---@field dirs table<number, BagmanCleanDir>
 ---@field images table<number, BagmanCleanImage>

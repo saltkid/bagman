@@ -1,8 +1,9 @@
 # bagman
 Background Manager for [Wezterm](https://github.com/wez/wezterm/) that
 automatically cycles through different backgrounds at a user-defined interval.
-Usually, the interrupts to change background are quick but it might get too long
-if the image is too large.
+It handles configuring the `background` config option and will overwrite any
+previous values. Usually, the interrupts to change background are quick but it
+might get too long if the image is too large.
 
 ## Key Features
 - auto cycle background images at a user-defined interval.
@@ -109,11 +110,13 @@ bagman.setup({
     -- default: 30 * 60
     interval = 10 * 60,
 
-    -- Color Layer below the image. Affects the overall tint of the background
-    -- can be any ansi color like "Maroon", "Green", or "Aqua" or any hex color
-    -- string like "#121212"
-    -- default: "#000000"
-    backdrop = "#161616",
+    -- Color Layer below the image. Affects the overall tint of the image and
+    -- can be any ansi color like "Maroon", "Green", or "Aqua", any hex color
+    -- string like "#121212". 
+    -- It can also be a table specifying the color as ansi or hex string,
+    -- and the opacity as a number from 0.0 to 1.0
+    -- default: { color = "#000000", opacity = 1.0 }
+    backdrop = "#161616", -- equivalent to { color = "#161616", opacity = 1.0 }
 
     -- Whether to immediately start changing bg image every <interval> seconds
     -- on startup.

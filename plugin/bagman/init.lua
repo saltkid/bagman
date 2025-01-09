@@ -10,7 +10,7 @@ local M = {}
 -- defaults for various bagman data
 local default = {
 	auto_cycle = true,
-	backdrop = "#000000",
+	backdrop = { color = "#000000", opacity = 1.0 },
 	change_tab_colors = false,
 	horizontal_align = "Center",
 	hsb = { hue = 1.0, saturation = 1.0, brightness = 1.0 },
@@ -212,9 +212,9 @@ local function set_bg_image(
 	overrides.background = {
 		{
 			source = {
-				Color = bagman_data.config.backdrop,
+				Color = bagman_data.config.backdrop.color,
 			},
-			opacity = 0.95,
+			opacity = bagman_data.config.backdrop.opacity,
 			height = "100%",
 			width = "100%",
 		},
@@ -259,9 +259,10 @@ function M.setup(opts)
 	if (not opts.dirs or #opts.dirs == 0) and (not opts.images or #opts.images == 0) then
 		wezterm.log_error("BAGMAN ERROR: No directories and images provided for background images. args: ", opts)
 	end
-	-- clean dirs option
+
+	---@type table<number, BagmanCleanDir>
+	local clean_dirs = {}
 	opts.dirs = opts.dirs or {}
-	local clean_dirs = {} ---@type table<number, BagmanCleanDir>
 	for i = 1, #opts.dirs do
 		local dirty_dir = opts.dirs[i]
 		if type(dirty_dir) == "nil" then
@@ -288,9 +289,10 @@ function M.setup(opts)
 			}
 		end
 	end
-	-- clean images option
+
+	---@type table<number, BagmanCleanImage>
+	local clean_images = {}
 	opts.images = opts.images or {}
-	local clean_images = {} ---@type table<number, BagmanCleanImage>
 	for i = 1, #opts.images do
 		local dirty_image = opts.images[i]
 		if type(dirty_image) == "nil" then
@@ -317,13 +319,29 @@ function M.setup(opts)
 			}
 		end
 	end
+
+	---@type Backdrop
+	local clean_backdrop
+	if type(opts.backdrop) == "nil" then
+		clean_backdrop = default.backdrop
+	elseif type(opts.backdrop) == "string" then
+		clean_backdrop = {
+			color = opts.backdrop --[[@as string]],
+			opacity = default.backdrop.opacity,
+		}
+	else
+		clean_backdrop = {
+			color = opts.backdrop.color or default.backdrop.color,
+			opacity = opts.backdrop.opacity or default.backdrop.opacity,
+		}
+	end
 	-- setup config data with cleaned data
 	bagman_data.config = {
+		backdrop = clean_backdrop,
+		change_tab_colors = opts.change_tab_colors or default.change_tab_colors,
 		dirs = clean_dirs,
 		images = clean_images,
 		interval = opts.interval or default.interval,
-		backdrop = opts.backdrop or default.backdrop,
-		change_tab_colors = opts.change_tab_colors or default.change_tab_colors,
 	}
 	if opts.auto_cycle then
 		bagman_data.state.auto_cycle = true
