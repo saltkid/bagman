@@ -9,11 +9,11 @@ M.table = {}
 ---@param tbl table
 ---@return table tbl_copy
 function M.table.shallow_copy(tbl)
-	local tbl_copy = {}
-	for k, v in pairs(tbl) do
-		tbl_copy[k] = v
-	end
-	return tbl_copy
+    local tbl_copy = {}
+    for k, v in pairs(tbl) do
+        tbl_copy[k] = v
+    end
+    return tbl_copy
 end
 
 -- returns a deep copy of a table.
@@ -23,20 +23,20 @@ end
 ---@param seen? table whether we saw this table before, to avoid inf recursion
 ---@return table tbl_copy
 function M.table.deep_copy(tbl, seen)
-	if type(tbl) ~= "table" then
-		return tbl
-	end
-	if seen and seen[tbl] then
-		return seen[tbl]
-	end
+    if type(tbl) ~= "table" then
+        return tbl
+    end
+    if seen and seen[tbl] then
+        return seen[tbl]
+    end
 
-	local s = seen or {}
-	local res = {}
-	s[tbl] = res
-	for k, v in pairs(tbl) do
-		res[M.table.deep_copy(k, s)] = M.table.deep_copy(v, s)
-	end
-	return setmetatable(res, getmetatable(tbl))
+    local s = seen or {}
+    local res = {}
+    s[tbl] = res
+    for k, v in pairs(tbl) do
+        res[M.table.deep_copy(k, s)] = M.table.deep_copy(v, s)
+    end
+    return setmetatable(res, getmetatable(tbl))
 end
 
 return M

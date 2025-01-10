@@ -45,6 +45,7 @@
 
 -- args passed to bagman.emit.set_image(window, path/to/image, { ... })
 ---@class BagmanSetImageOptions
+-- in px
 ---@field height? number
 ---@field horizontal_align? HorizontalAlign
 -- valid values for its fields are from 0.0 to above
@@ -53,6 +54,7 @@
 -- from 0.0 above
 ---@field opacity? f32
 ---@field vertical_align? VerticalAlign
+-- in px
 ---@field width? number
 
 -- }}}
@@ -64,7 +66,7 @@
 ---@field config BagmanConfig
 ---@field state BagmanState
 
--- These are the possible fields in wezterm.GLOBAL.bagman
+-- These are the possible fields in wezterm.GLOBAL.bagman.
 -- Since these are used for bagman functionality, please don't arbitrarily
 -- change these.
 ---@class BagmanWeztermGlobal
@@ -79,18 +81,24 @@
 -- Holds the local config needed to determine how to change the background.
 -- should be READONLY and never changed after initial setup.
 ---@class BagmanConfig
+-- color layer below the image
 ---@field backdrop Backdrop
 -- whether to change tab bar colors based on the current background
 ---@field change_tab_colors boolean
+-- directories to look for images to choose from when changing background image
 ---@field dirs table<number, BagmanCleanDir>
+-- WARN: experimental options
 ---@field __experimental BagmanExperimental
+-- images to choose from when changing background image
 ---@field images table<number, BagmanCleanImage>
+-- in seconds
 ---@field interval number
 
 -- Holds the local state needed to determine whether to stop because of error
 -- or because of user input, keep looping, etc. MUTABLE
 ---@class BagmanState
 ---@field auto_cycle boolean
+-- amount of `next-image` retries. max of 5 till bagman stops trying
 ---@field retries number
 
 -- }}}
@@ -105,6 +113,7 @@
 ---@field object_fit? ObjectFit
 -- from 0.0 to 1.0
 ---@field opacity? f32
+-- path to a directory containing images
 ---@field path string
 ---@field vertical_align? VerticalAlign
 
@@ -117,6 +126,7 @@
 ---@field object_fit ObjectFit
 -- from 0.0 above
 ---@field opacity f32
+-- path to a directory containing images
 ---@field path string
 ---@field vertical_align VerticalAlign
 
@@ -128,6 +138,7 @@
 ---@field object_fit? ObjectFit
 -- from 0.0 to 1.0
 ---@field opacity? f32
+-- path to image file
 ---@field path string
 ---@field vertical_align? VerticalAlign
 
@@ -139,6 +150,7 @@
 ---@field object_fit ObjectFit
 -- from 0.0 above
 ---@field opacity f32
+-- path to image file
 ---@field path string
 ---@field vertical_align VerticalAlign
 
@@ -146,10 +158,10 @@
 
 -- BAGMAN CURRENT IMAGE OBJECT {{{
 
--- current background image set by bagman. Only really used when resizing window since I
+-- generic background image. Difference with [BagmanCurrentImage] is that its
+-- dimensions (width, height) are not present
 -- need to know what object fit an image has.
----@class BagmanCurrentImage
----@field height number | string | ObjectFit scaled width. can be in px, "n%", or any of the ObjectFit values
+---@class BagmanImage
 ---@field horizontal_align HorizontalAlign
 -- valid values for its fields are from 0.0 to above
 ---@field hsb Hsb
@@ -158,6 +170,21 @@
 ---@field opacity f32
 ---@field path string
 ---@field vertical_align VerticalAlign
----@field width number | string | ObjectFit scaled width. can be in px, "n%", or any of the ObjectFit values
+
+-- current background image set by bagman. Only really used when resizing window since I
+-- need to know what object fit an image has.
+---@class BagmanCurrentImage
+-- scaled height. can be in px, "n%", or any of the ObjectFit values
+---@field height number | string | ObjectFit
+---@field horizontal_align HorizontalAlign
+-- valid values for its fields are from 0.0 to above
+---@field hsb Hsb
+---@field object_fit ObjectFit
+-- from 0.0 above
+---@field opacity f32
+---@field path string
+---@field vertical_align VerticalAlign
+-- scaled width. can be in px, "n%", or any of the ObjectFit values
+---@field width number | string | ObjectFit
 
 -- }}}

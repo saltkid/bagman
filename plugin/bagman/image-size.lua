@@ -29,51 +29,53 @@ local private = {}
 ---@param file_path string path to image file
 ---@return { width: number, height: number } | { err: string } dims result or error
 function Public.size(file_path)
-	local handle, err = io.open(file_path, "rb")
-	if not handle then
-		return { err = string.format("Unable to open file '%q': %q", file_path, err) }
-	end
+    local handle, err = io.open(file_path, "rb")
+    if not handle then
+        return {
+            err = string.format("Unable to open file '%q': %q", file_path, err),
+        }
+    end
 
-	local magic = handle:read(8)
-	if not magic or #magic < 8 then
-		return { err = "Failed to read file" }
-	end
-	handle:seek("set", 0)
+    local magic = handle:read(8)
+    if not magic or #magic < 8 then
+        return { err = "Failed to read file" }
+    end
+    handle:seek("set", 0)
 
-	local dims
-	if magic:sub(1, 4) == "\137PNG" then
-		dims = private.png_size(handle)
-	elseif magic:sub(1, 2) == "\xFF\xD8" then
-		dims = private.jpeg_size(handle)
-	elseif magic:sub(1, 3) == "GIF" then
-		dims = private.gif_size(handle)
-	elseif magic:sub(1, 2) == "BM" then
-		dims = private.bmp_size(handle)
-	elseif magic:sub(1, 4) == "\0\0\1\0" then
-		dims = private.ico_size(handle)
-	elseif magic:sub(1, 2) == "II" or magic:sub(1, 2) == "MM" then
-		dims = private.tiff_size(handle)
-	elseif
-		magic:sub(1, 2) == "P1"
-		or magic:sub(1, 2) == "P2"
-		or magic:sub(1, 2) == "P3"
-		or magic:sub(1, 2) == "P4"
-		or magic:sub(1, 2) == "P5"
-		or magic:sub(1, 2) == "P6"
-	then
-		dims = private.pnm_size(handle)
-	elseif magic:sub(1, 4) == "DDS " then
-		dims = private.dds_size(handle)
-	elseif private.possibly_tga(magic) then
-		dims = private.tga_size(handle)
-	elseif magic == "farbfeld" then
-		dims = private.farbfeld_size(handle)
-	else
-		err = "Unsupported image type: " .. magic
-	end
+    local dims
+    if magic:sub(1, 4) == "\137PNG" then
+        dims = private.png_size(handle)
+    elseif magic:sub(1, 2) == "\xFF\xD8" then
+        dims = private.jpeg_size(handle)
+    elseif magic:sub(1, 3) == "GIF" then
+        dims = private.gif_size(handle)
+    elseif magic:sub(1, 2) == "BM" then
+        dims = private.bmp_size(handle)
+    elseif magic:sub(1, 4) == "\0\0\1\0" then
+        dims = private.ico_size(handle)
+    elseif magic:sub(1, 2) == "II" or magic:sub(1, 2) == "MM" then
+        dims = private.tiff_size(handle)
+    elseif
+        magic:sub(1, 2) == "P1"
+        or magic:sub(1, 2) == "P2"
+        or magic:sub(1, 2) == "P3"
+        or magic:sub(1, 2) == "P4"
+        or magic:sub(1, 2) == "P5"
+        or magic:sub(1, 2) == "P6"
+    then
+        dims = private.pnm_size(handle)
+    elseif magic:sub(1, 4) == "DDS " then
+        dims = private.dds_size(handle)
+    elseif private.possibly_tga(magic) then
+        dims = private.tga_size(handle)
+    elseif magic == "farbfeld" then
+        dims = private.farbfeld_size(handle)
+    else
+        err = "Unsupported image type: " .. magic
+    end
 
-	handle:close()
-	return dims
+    handle:close()
+    return dims
 end
 
 -- }}}
@@ -101,13 +103,18 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.png_size(handle)
-	local data = handle:read(24)
-	if #data < 24 then
-		return { err = string.format("Invalid PNG file: malformed header (too short) (%q)", data) }
-	end
-	local width = string.unpack(">I4", data:sub(17, 20))
-	local height = string.unpack(">I4", data:sub(21, 24))
-	return { width = width, height = height }
+    local data = handle:read(24)
+    if #data < 24 then
+        return {
+            err = string.format(
+                "Invalid PNG file: malformed header (too short) (%q)",
+                data
+            ),
+        }
+    end
+    local width = string.unpack(">I4", data:sub(17, 20))
+    local height = string.unpack(">I4", data:sub(21, 24))
+    return { width = width, height = height }
 end
 
 -- get width and height of a jpeg file
@@ -135,37 +142,41 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.jpeg_size(handle)
-	-- skip SOI marker (2 bytes)
-	handle:seek("cur", 2)
-	local width, height
-	while true do
-		local byte = handle:read(1)
-		if not byte then
-			break
-		end
-		-- start of marker
-		if byte == "\xFF" then
-			local marker_type = handle:read(1)
-			-- C0: baseline DCT-based JPEG
-			-- C2: progressive DCT-based JPEG
-			if marker_type == "\xC0" or marker_type == "\xC2" then
-				local chunk_data = handle:read(7)
-				height = string.unpack(">I2", chunk_data:sub(4, 5))
-				width = string.unpack(">I2", chunk_data:sub(6, 7))
-				break
-			else
-				-- skip over segment
-				local len = string.unpack(">I2", handle:read(2))
-				handle:seek("cur", len - 2)
-			end
-		end
-	end
-	if not width and not height then
-		return {
-			err = string.format("Invalid JPEG file: could not find width/height (width=%q, height=%q)", width, height),
-		}
-	end
-	return { width = width, height = height }
+    -- skip SOI marker (2 bytes)
+    handle:seek("cur", 2)
+    local width, height
+    while true do
+        local byte = handle:read(1)
+        if not byte then
+            break
+        end
+        -- start of marker
+        if byte == "\xFF" then
+            local marker_type = handle:read(1)
+            -- C0: baseline DCT-based JPEG
+            -- C2: progressive DCT-based JPEG
+            if marker_type == "\xC0" or marker_type == "\xC2" then
+                local chunk_data = handle:read(7)
+                height = string.unpack(">I2", chunk_data:sub(4, 5))
+                width = string.unpack(">I2", chunk_data:sub(6, 7))
+                break
+            else
+                -- skip over segment
+                local len = string.unpack(">I2", handle:read(2))
+                handle:seek("cur", len - 2)
+            end
+        end
+    end
+    if not width and not height then
+        return {
+            err = string.format(
+                "Invalid JPEG file: could not find width/height (width=%q, height=%q)",
+                width,
+                height
+            ),
+        }
+    end
+    return { width = width, height = height }
 end
 
 -- get width and height of a gif file
@@ -186,13 +197,18 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.gif_size(handle)
-	local data = handle:read(10)
-	if #data < 10 then
-		return { err = string.format("Invalid GIF file: malformed header (too short) (%q)", data) }
-	end
-	local width = string.unpack("<I2", data:sub(7, 8))
-	local height = string.unpack("<I2", data:sub(9, 10))
-	return { width = width, height = height }
+    local data = handle:read(10)
+    if #data < 10 then
+        return {
+            err = string.format(
+                "Invalid GIF file: malformed header (too short) (%q)",
+                data
+            ),
+        }
+    end
+    local width = string.unpack("<I2", data:sub(7, 8))
+    local height = string.unpack("<I2", data:sub(9, 10))
+    return { width = width, height = height }
 end
 
 -- get width and height of a bmp file
@@ -218,13 +234,18 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.bmp_size(handle)
-	local data = handle:read(26)
-	if #data < 26 then
-		return { err = string.format("Invalid BMP file: malformed header (too short) (%q)", data) }
-	end
-	local width = string.unpack("<I4", data:sub(19, 22))
-	local height = string.unpack("<I4", data:sub(23, 26))
-	return { width = width, height = height }
+    local data = handle:read(26)
+    if #data < 26 then
+        return {
+            err = string.format(
+                "Invalid BMP file: malformed header (too short) (%q)",
+                data
+            ),
+        }
+    end
+    local width = string.unpack("<I4", data:sub(19, 22))
+    local height = string.unpack("<I4", data:sub(23, 26))
+    return { width = width, height = height }
 end
 
 -- get width and height of an ico file. This only gets the dimensions of the
@@ -249,21 +270,21 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.ico_size(handle)
-	local data = handle:read(8)
-	local num_images = string.unpack("<I2", data:sub(5, 6))
-	if num_images == 0 then
-		return { err = "Invalid ICO file: no images found" }
-	end
+    local data = handle:read(8)
+    local num_images = string.unpack("<I2", data:sub(5, 6))
+    if num_images == 0 then
+        return { err = "Invalid ICO file: no images found" }
+    end
 
-	local width = data:byte(7)
-	if width == 0 then
-		width = 256
-	end
-	local height = data:byte(8)
-	if height == 0 then
-		height = 256
-	end
-	return { width = width, height = height }
+    local width = data:byte(7)
+    if width == 0 then
+        width = 256
+    end
+    local height = data:byte(8)
+    if height == 0 then
+        height = 256
+    end
+    return { width = width, height = height }
 end
 
 -- get width and height of a tiff file. This only gets the dimensions of the
@@ -293,48 +314,57 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.tiff_size(handle)
-	local header = handle:read(4)
-	local byte_order
-	if header:sub(1, 2) == "II" then
-		byte_order = "<"
-	elseif header:sub(1, 2) == "MM" then
-		byte_order = ">"
-	else
-		return {
-			err = string.format(
-				"UNEXPECTED ERROR: tiff magic number should be checked beforehand ('%q' is not 'II' or 'MM')",
-				header:sub(1, 2)
-			),
-		}
-	end
+    local header = handle:read(4)
+    local byte_order
+    if header:sub(1, 2) == "II" then
+        byte_order = "<"
+    elseif header:sub(1, 2) == "MM" then
+        byte_order = ">"
+    else
+        return {
+            err = string.format(
+                "UNEXPECTED ERROR: tiff magic number should be checked beforehand ('%q' is not 'II' or 'MM')",
+                header:sub(1, 2)
+            ),
+        }
+    end
 
-	local ifd_offset = string.unpack(byte_order .. "I4", handle:read(4))
-	handle:seek("set", ifd_offset)
+    local ifd_offset = string.unpack(byte_order .. "I4", handle:read(4))
+    handle:seek("set", ifd_offset)
 
-	local num_entries = string.unpack(byte_order .. "I2", handle:read(2))
-	local width, height
-	for _ = 1, num_entries do
-		local entry = handle:read(12)
-		if not entry or #entry < 12 then
-			return { err = string.format("Invalid TIFF file: invalid IFD entry (%q)", entry) }
-		end
+    local num_entries = string.unpack(byte_order .. "I2", handle:read(2))
+    local width, height
+    for _ = 1, num_entries do
+        local entry = handle:read(12)
+        if not entry or #entry < 12 then
+            return {
+                err = string.format(
+                    "Invalid TIFF file: invalid IFD entry (%q)",
+                    entry
+                ),
+            }
+        end
 
-		local tag = string.unpack(byte_order .. "I2", entry:sub(1, 2))
-		if tag == 256 then
-			width = string.unpack(byte_order .. "I4", entry:sub(9, 12))
-		elseif tag == 257 then
-			height = string.unpack(byte_order .. "I4", entry:sub(9, 12))
-		end
-		if width and height then
-			break
-		end
-	end
-	if not width or not height then
-		return {
-			err = string.format("Invalid TIFF file: width/height tag not found (width=%q, height=%q)", width, height),
-		}
-	end
-	return { width = width, height = height }
+        local tag = string.unpack(byte_order .. "I2", entry:sub(1, 2))
+        if tag == 256 then
+            width = string.unpack(byte_order .. "I4", entry:sub(9, 12))
+        elseif tag == 257 then
+            height = string.unpack(byte_order .. "I4", entry:sub(9, 12))
+        end
+        if width and height then
+            break
+        end
+    end
+    if not width or not height then
+        return {
+            err = string.format(
+                "Invalid TIFF file: width/height tag not found (width=%q, height=%q)",
+                width,
+                height
+            ),
+        }
+    end
+    return { width = width, height = height }
 end
 
 -- get width and height of a pnm file (pbm, pgm, or ppm)
@@ -353,25 +383,31 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.pnm_size(handle)
-	handle:seek("cur", 2) -- skip magic
-	-- skip comments
-	while true do
-		local line = handle:read("*line")
-		if not line then
-			break
-		end
-		if line == "" then
-			-- continue
-		elseif line:sub(1, 1) ~= "#" then
-			handle:seek("cur", -#line - 1)
-			break
-		end
-	end
-	local width, height = handle:read("*n"), handle:read("*n")
-	if not width or not height then
-		return { err = string.format("Invalid PNM file: invalid pnm dimensions (width=%q, height=%q)", width, height) }
-	end
-	return { width = width, height = height }
+    handle:seek("cur", 2) -- skip magic
+    -- skip comments
+    while true do
+        local line = handle:read("*line")
+        if not line then
+            break
+        end
+        if line == "" then
+            -- continue
+        elseif line:sub(1, 1) ~= "#" then
+            handle:seek("cur", -#line - 1)
+            break
+        end
+    end
+    local width, height = handle:read("*n"), handle:read("*n")
+    if not width or not height then
+        return {
+            err = string.format(
+                "Invalid PNM file: invalid pnm dimensions (width=%q, height=%q)",
+                width,
+                height
+            ),
+        }
+    end
+    return { width = width, height = height }
 end
 
 -- get width and height of a dds file
@@ -395,13 +431,18 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.dds_size(handle)
-	local header = handle:read(20)
-	if #header < 20 then
-		return { err = string.format("Invalid DDS file: malformed header (too short) (%q)", header) }
-	end
-	local height = string.unpack("<I4", header:sub(13, 16))
-	local width = string.unpack("<I4", header:sub(17, 20))
-	return { width = width, height = height }
+    local header = handle:read(20)
+    if #header < 20 then
+        return {
+            err = string.format(
+                "Invalid DDS file: malformed header (too short) (%q)",
+                header
+            ),
+        }
+    end
+    local height = string.unpack("<I4", header:sub(13, 16))
+    local width = string.unpack("<I4", header:sub(17, 20))
+    return { width = width, height = height }
 end
 
 -- TGA does not have a magic number so this tries to guess if a file is a tga
@@ -419,29 +460,29 @@ end
 ---@param header string header that's at least 3 bytes
 ---@return boolean
 function private.possibly_tga(header)
-	local ID_length = header:byte(1)
-	local color_map_type = header:byte(2)
-	local image_type = header:byte(3)
-	if
-		-- ID length must be (0-255)
-		(ID_length >= 0 and ID_length <= 255)
-		-- color map type must be in (0,1)
-		and (color_map_type == 0 or color_map_type == 1)
-		-- image type must be in (0,1,2,3,9,10,11,32,33)
-		and (
-			image_type == 0
-			or image_type == 1
-			or image_type == 2
-			or image_type == 3
-			or image_type == 9
-			or image_type == 10
-			or image_type == 32
-			or image_type == 33
-		)
-	then
-		return true
-	end
-	return false
+    local ID_length = header:byte(1)
+    local color_map_type = header:byte(2)
+    local image_type = header:byte(3)
+    if
+        -- ID length must be (0-255)
+        (ID_length >= 0 and ID_length <= 255)
+        -- color map type must be in (0,1)
+        and (color_map_type == 0 or color_map_type == 1)
+        -- image type must be in (0,1,2,3,9,10,11,32,33)
+        and (
+            image_type == 0
+            or image_type == 1
+            or image_type == 2
+            or image_type == 3
+            or image_type == 9
+            or image_type == 10
+            or image_type == 32
+            or image_type == 33
+        )
+    then
+        return true
+    end
+    return false
 end
 
 -- get width and height of a tga file
@@ -467,13 +508,18 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.tga_size(handle)
-	local header = handle:read(16)
-	if not private.possibly_tga(header) then
-		return { err = string.format("Invalid TGA file: malformed header (too short) (%q)", header) }
-	end
-	local width = string.unpack("<I2", header:sub(13, 14))
-	local height = string.unpack("<I2", header:sub(15, 16))
-	return { width = width, height = height }
+    local header = handle:read(16)
+    if not private.possibly_tga(header) then
+        return {
+            err = string.format(
+                "Invalid TGA file: malformed header (too short) (%q)",
+                header
+            ),
+        }
+    end
+    local width = string.unpack("<I2", header:sub(13, 14))
+    local height = string.unpack("<I2", header:sub(15, 16))
+    return { width = width, height = height }
 end
 
 -- get width and height of a farbfeld file
@@ -490,13 +536,18 @@ end
 ---@param handle file* file handle (do not close it). file is at least 8 bytes in length
 ---@return { width: number, height: number } | { err: string } dims result or error
 function private.farbfeld_size(handle)
-	local data = handle:read(16)
-	if #data < 16 then
-		return { err = string.format("Invalid farbfeld file: malformed header (too short) (%q)", data) }
-	end
-	local width = string.unpack(">I4", data:sub(9, 12))
-	local height = string.unpack(">I4", data:sub(13, 16))
-	return { width = width, height = height }
+    local data = handle:read(16)
+    if #data < 16 then
+        return {
+            err = string.format(
+                "Invalid farbfeld file: malformed header (too short) (%q)",
+                data
+            ),
+        }
+    end
+    local width = string.unpack(">I4", data:sub(9, 12))
+    local height = string.unpack(">I4", data:sub(13, 16))
+    return { width = width, height = height }
 end
 -- }}}
 
