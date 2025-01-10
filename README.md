@@ -79,7 +79,6 @@ bagman.setup({
                 brightness = 1.0, -- default: 1.0
             }, 
             object_fit = "Fill", -- default: "Contain"
-            scale = 0.5, -- default: 1.0
         },
 
         -- all fields except path are optional.
@@ -154,15 +153,10 @@ Fields:
     - same as wezterm's
 6. `path`
     - absolute path to image file
-7. `scale`
-    - scale multiplier applied to image after the scaling done by `object_fit`.
-    For example, `object_fit = "Contain", scale = 0.5` will first scale the
-    image to fit within the window, then scale it down to 50% of that.
-    - valid values: from `0.0` above
-8. `vertical_align`
+7. `vertical_align`
     - valid values: `"Top"`, `"Middle"`, `"Bottom"`
     - same as wezterm's
-9. `width`
+8. `width`
     - width of the image in px
 
 ### `bagman.action.next_image()`
