@@ -41,15 +41,8 @@ end
 ---@param image string | { path: string, speed: number } path to image file
 ---@return TabBar color_scheme tab bar color scheme
 function M.build_tab_bar_colorscheme_from_image(image)
-	local image_path = function()
-		if type(image) == "table" then
-			return image.path
-		else
-			return image --[[@as string]]
-		end
-	end
 	---@type table<number, Color>
-	local color_from_image = wezterm.color.extract_colors_from_image(image_path(), {
+	local color_from_image = wezterm.color.extract_colors_from_image(image.path or image, {
 		-- only need 4 for tab_bar config. might add more if this is expanded (probably not)
 		num_colors = 4,
 		-- has good enough results from my testing
