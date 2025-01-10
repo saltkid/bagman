@@ -65,20 +65,6 @@ local bagman_data = {
 
 -- PRIVATE FUNCTIONS {{{
 
---- Should only ever have 1 loop. If `bagman.start_loop()` gets called again, it won't do
---- anything.
----@param window Window used to change the background image
-local function loop_forever(window)
-	if not bagman_data.state.auto_cycle then
-		wezterm.log_info("BAGMAN INFO: stopped loop.")
-		return
-	end
-	M.emit.next_image(window)
-	wezterm.time.call_after(bagman_data.config.interval, function()
-		loop_forever(window)
-	end)
-end
-
 -- valid filetypes: `*.png, *.jpg, *.jpeg, *.gif, *.bmp, *.ico, *.tiff, *.pnm, *.dds, *.tga, *.farbfeld`
 ---@param dir string must be absolute path
 ---@return table<string> images in `dir`
@@ -197,11 +183,6 @@ function M.setup(opts)
 		wezterm.log_error("BAGMAN ERROR: No directories and images provided for background images. args: ", opts)
 	end
 
-	-- clean auto_cycle option
-	if type(opts.auto_cycle) == "nil" then
-		opts.auto_cycle = default.auto_cycle
-	end
-
 	-- clean dirs option
 	---@type table<number, BagmanCleanDir>
 	local clean_dirs = {}
@@ -294,15 +275,8 @@ function M.setup(opts)
 		interval = opts.interval or default.interval,
 		__experimental = clean_experimental,
 	}
-	if opts.auto_cycle then
-		bagman_data.state.auto_cycle = true
-		wezterm.on("gui-startup", function(cmd)
-			local _, _, window = wezterm.mux.spawn_window(cmd or {})
-			loop_forever(window:gui_window())
-		end)
-	else
-		bagman_data.state.auto_cycle = false
-	end
+
+	bagman_data.state.auto_cycle = opts.auto_cycle or default.auto_cycle
 end
 
 -- current background image set by bagman. changing this won't do anything and
@@ -360,22 +334,45 @@ M.action = {
 
 -- EVENT HANDLERS {{{
 
+-- This is what handles cycling background images.
+-- It even handles not overlapping loops by keeping track of whether there
+-- already is an image set by bagman.
+wezterm.on("window-config-reloaded", function(window)
+	if not bagman_data.state.auto_cycle or wezterm.GLOBAL.bagman.manually_cycle == false then
+		return
+	end
+	if wezterm.GLOBAL.bagman.current_image then
+		wezterm.time.call_after(bagman_data.config.interval, function()
+			-- if the loop is stopped before this task is called and only now
+			-- is it executing.
+			if not bagman_data.state.auto_cycle or wezterm.GLOBAL.bagman.manually_cycle == false then
+				return
+			end
+			M.emit.next_image(window)
+		end)
+	else
+		M.emit.next_image(window)
+	end
+end)
+
 wezterm.on("bagman.start-loop", function(window)
-	if bagman_data.state.auto_cycle then
+	if bagman_data.state.auto_cycle and wezterm.GLOBAL.bagman.manually_cycle then
 		wezterm.log_error("BAGMAN ERROR: only one bagman loop may exist.")
 		return
 	end
+	wezterm.log_info("BAGMAN INFO: starting loop")
 	bagman_data.state.auto_cycle = true
-	loop_forever(window)
+	wezterm.GLOBAL.bagman.manually_cycle = true
+	M.emit.next_image(window)
 end)
-
 wezterm.on("bagman.stop-loop", function()
 	if not bagman_data.state.auto_cycle then
 		wezterm.log_error("BAGMAN ERROR: no loop is currently running.")
 		return
 	end
 	bagman_data.state.auto_cycle = false
-	wezterm.log_info("BAGMAN INFO: stopped signal recieved.")
+	wezterm.GLOBAL.bagman.manually_cycle = false
+	wezterm.log_info("BAGMAN INFO: stop signal recieved.")
 end)
 
 ---Sets a random image as the background image
