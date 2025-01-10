@@ -1,10 +1,13 @@
 local wezterm = require("wezterm") --[[@as Wezterm]]
-local image_size = require("bagman.image-size") --[[@as ImageSize]]
 local image_resizer = require("bagman.image-resizer") --[[@as ImageResizer]]
 local colorscheme_builder = require("bagman.colorscheme-builder") --[[@as ColorSchemeBuilder]]
+local utils = require("bagman.utils") --[[@as BagmanUtils]]
 
 ---@class Bagman
 local M = {}
+
+---@type BagmanWeztermGlobal
+wezterm.GLOBAL.bagman = wezterm.GLOBAL.bagman or {}
 
 -- OPTION DEFAULTS {{{
 -- defaults for various bagman data
@@ -50,19 +53,6 @@ local bagman_data = {
 		-- encountered. Should only be incremented and reset in the 'bagman.next-image' event
 		-- handler.
 		retries = 0,
-		-- current background image set by bagman. Only really used when resizing window since I
-		-- need to know what object fit an image has.
-		current_image = {
-			height = 0,
-			horizontal_align = default.horizontal_align,
-			hsb = default.hsb,
-			object_fit = default.object_fit,
-			opacity = default.opacity,
-			path = "",
-			scale = default.scale,
-			vertical_align = default.vertical_align,
-			width = 0,
-		},
 	},
 }
 
@@ -234,16 +224,15 @@ local function set_bg_image(
 	}
 	window:set_config_overrides(overrides)
 
-	bagman_data.state.current_image = {
-		height = image_height,
-		horizontal_align = horizontal_align,
-		hsb = hsb,
-		object_fit = object_fit,
-		opacity = opacity,
-		path = image,
-		scale = scale,
-		vertical_align = vertical_align,
-		width = image_width,
+	wezterm.GLOBAL.bagman.current_image = {
+		height = dims.original.height,
+		horizontal_align = image.horizontal_align,
+		hsb = image.hsb,
+		object_fit = image.object_fit,
+		opacity = image.opacity,
+		path = image.path,
+		vertical_align = image.vertical_align,
+		width = dims.original.width,
 	}
 end
 
@@ -365,8 +354,9 @@ end
 
 -- current background image set by bagman. changing this won't do anything and
 -- is only for reading purposes.
+---@return BagmanCurrentImage
 function M.current_image()
-	return require("bagman.utils").table.shallow_copy(bagman_data.state.current_image)
+	return utils.table.deep_copy(wezterm.GLOBAL.bagman.current_image)
 end
 
 -- Helper for ze autocomplete. Contains emitters equivalent to:
