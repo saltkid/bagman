@@ -23,9 +23,9 @@ local config = wezterm.config_builder()
 
 bagman.setup({
     dirs = {
-        "/abs/path/to/dir",
+        "/path/to/dir-1",
         {
-            path = os.getenv("HOME") .. "/path/to/home/subdir",
+            path = wezterm.home_dir .. "/path/to/dir-2",
             object_fit = "Contain",
             horizontal_align = "Right",
         },
@@ -57,8 +57,8 @@ return config
 bagman only registers event listeners so `bagman.apply_to_config(config)` does
 nothing for now.
 ### `bagman.setup(opts)`
-To see all possible values for the fields of `dirs` and `images` entries,
-please see the [current_image](#bagmancurrent_image) section.
+To see descriptions for the fields of `dirs` and `images` entries, please see
+the [current_image](#bagmancurrent_image) section.
 ```lua
 bagman.setup({
     -- pass in directories that contain images for bagman to search in
@@ -69,7 +69,7 @@ bagman.setup({
         -- or you can pass it in as a table where you can define options for
         -- images under that directory. Here are all the available options:
         {
-            path = os.getenv("HOME") .. "/path/to/home/subdir",
+            path = wezterm.home_dir .. "/path/to/home/subdir",
             vertical_align = "Top", -- default: "Middle"
             horizontal_align = "Right", -- default: "Center"
             opacity = 0.1, -- default: 1.0
@@ -84,7 +84,7 @@ bagman.setup({
         -- all fields except path are optional.
         -- below is equivalent to just passing it in as a string.
         {
-            path = os.getenv("HOME") .. "/path/to/another/home/subdir",
+            path = wezterm.home_dir .. "/path/to/another/home/subdir",
         },
     },
     -- you can also pass in image files
@@ -94,14 +94,14 @@ bagman.setup({
 
         -- as a table with some options
         {
-            path = os.getenv("HOME") .. "/path/to/another/image.jpg",
+            path = wezterm.home_dir .. "/path/to/another/image.jpg",
             vertical_align = "Bottom", -- default: "Middle"
             object_fit = "ScaleDown", -- default: "Contain"
         },
 
         -- as a table without the options
         {
-            path = os.getenv("HOME") .. "/path/to/another/image.gif",
+            path = wezterm.home_dir .. "/path/to/another/image.gif",
         },
     },
 
