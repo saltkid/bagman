@@ -57,21 +57,15 @@ return config
 bagman only registers event listeners so `bagman.apply_to_config(config)` does
 nothing for now.
 ### `bagman.setup(opts)`
-To see descriptions for the fields of `dirs` and `images` entries, please see
-the [current_image](#bagmancurrent_image) section.
+Here is a sample setup with all options:
 ```lua
 bagman.setup({
-    -- pass in directories that contain images for bagman to search in
     dirs = {
-        -- you can pass in directories as a string (must be absolute path),
-        "/abs/path/to/dir",
-
-        -- or you can pass it in as a table where you can define options for
-        -- images under that directory. Here are all the available options:
-        {
-            path = wezterm.home_dir .. "/path/to/home/subdir",
-            vertical_align = "Top", -- default: "Middle"
-            horizontal_align = "Right", -- default: "Center"
+        "/abs/path/to/dir", -- can define as a string
+        { -- or as a table with options
+            path = wezterm.home_dir .. "/path/to/home/subdir", -- no default, required
+            vertical_align = "Top", -- default: Center
+            horizontal_align = "Right", -- default: Middle
             opacity = 0.1, -- default: 1.0
             hsb = { 
                 hue = 1.0, -- default: 1.0
@@ -80,85 +74,91 @@ bagman.setup({
             }, 
             object_fit = "Fill", -- default: "Contain"
         },
-
-        -- all fields except path are optional.
-        -- below is equivalent to just passing it in as a string.
-        {
-            path = wezterm.home_dir .. "/path/to/another/home/subdir",
-        },
+        -- more dirs...
     },
-    -- you can also pass in image files
     images = {
-        -- as string
-        "/abs/path/to/image",
-
-        -- as a table with some options
         {
-            path = wezterm.home_dir .. "/path/to/another/image.jpg",
-            vertical_align = "Bottom", -- default: "Middle"
-            object_fit = "ScaleDown", -- default: "Contain"
+            path = "/abs/path/to/image", -- no default, required
+            vertical_align = "Bottom", -- default: Center
+            object_fit = "ScaleDown", -- default: Center
         },
-
-        -- as a table without the options
-        {
-            path = wezterm.home_dir .. "/path/to/another/image.gif",
-        },
+        wezterm.home_dir .. "/path/to/another/image.jpg",
+        -- more images...
     },
-
-    -- Interval in seconds on when to trigger a background image change.
-    -- default: 30 * 60
-    interval = 10 * 60,
-
-    -- Color Layer below the image. Affects the overall tint of the image and
-    -- can be any ansi color like "Maroon", "Green", or "Aqua", any hex color
-    -- string like "#121212". 
-    -- It can also be a table specifying the color as ansi or hex string,
-    -- and the opacity as a number from 0.0 to 1.0
-    -- default: { color = "#000000", opacity = 1.0 }
+    interval = 10 * 60, -- default: 30 * 60
     backdrop = "#161616", -- equivalent to { color = "#161616", opacity = 1.0 }
-
-    -- Whether to immediately start changing bg image every <interval> seconds
-    -- on startup.
-    -- default: true
-    auto_cycle = true,
-
-    -- whether to change tab_bar colors based off the current background image
-    -- default: false
-    change_tab_colors = true,
+    auto_cycle = true, -- default: true
+    change_tab_colors = true, -- default: false
 })
 ```
+All setup options are, well, optional. The only two requirement are:
+1. pass in at least one `dirs` or `images` entry.
+2. if a `dirs` or `image` entry is a table instead of a string, it must define
+a `path`
+#### bagman setup options
+1. `dirs`
+- Directories which contain images that bagman chooses from when changing
+the background image. It can be passed in as a string or as a table with
+options defined for that specific path.
+- The options for each entry are:
+    - `horizontal_align`
+        - valid values: `"Left"`, `"Center"`, `"Right"`
+        - default: `"Center"`
+        - behaves the same as wezterm's
+    - `hsb`
+        - fields: `hue`, `saturation`, `brightness`
+        - valid values for fields: from `0.0` above
+        - default values for all fields: `1.0`
+        - behaves the same as wezterm's
+    - `object_fit`
+        - how the image should be resized to fit the window
+        - valid values: `"Contain"`, `"Cover"`, `"Fill"`, `"None"`, `"ScaleDown"`
+        - default: `"Contain"`
+        - behave the same as css's
+        [`object-fit`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit)
+    - `opacity` 
+        - valid values: from `0.0` to `1.0`
+        - default: `1.0`
+        - behaves the same as wezterm's
+    - `path`
+        - absolute path to a directory
+        - no default, required
+    - `vertical_align`
+        - valid values: `"Top"`, `"Middle"`, `"Bottom"`
+        - default: `"Middle"`
+        - behaves the same as wezterm's
+2. `images`
+- Images that bagman chooses from when changing the background image.
+- Its options are the same as a `dirs` entry's but `path` referes to a path
+to an image file instead.
+3. `auto_cycle`
+- Whether to immediately start changing bg image every <interval> seconds on
+startup.
+- default: `true`
+4. `backdrop`
+- The color layer below the image. It can be any ansi color like `"Maroon"`,
+`"Green"`, or `"Aqua"`, or any hex color string like `"#121212"`.
+- It can also
+be a table specifying the color as ansi or hex string, and the opacity as a
+number from 0.0 to 1.0
+- default: `{ color = "#000000", opacity = 1.0 }`
+5. `change_tab_colors`
+- Whether to change tab_bar colors based off the current background image
+- default: `false`
+6. `interval`
+- Interval in seconds on when to trigger a background image change.
+- default: `30 * 60`
 
 ### `bagman.current_image()`
 Returns the latest background image set by bagman, along with its options. Note
 that this is readonly and even if the return value's fields are reassigned, it
 will not affect any bagman functionality.
 
-Fields:
-1. `height`
-    - height of the image in px
-2. `horizontal_align`
-    - valid values: `"Left"`, `"Center"`, `"Middle"`
-    - same as wezterm's
-3. `hsb`
-    - fields: `hue`, `saturation`, `brightness`
-    - valid values for fields: from `0.0` above
-    - same as wezterm's
-4. `object_fit`
-    - how the image should be resized to fit the window
-    - valid values: `"Contain"`, `"Cover"`, `"Fill"`, `"None"`, `"ScaleDown"`
-    - these behave the same as css's
-    [`object-fit`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit)
-5. `opacity` 
-    - valid values: from `0.0` to `1.0`
-    - same as wezterm's
-6. `path`
-    - absolute path to image file
-7. `vertical_align`
-    - valid values: `"Top"`, `"Middle"`, `"Bottom"`
-    - same as wezterm's
-8. `width`
-    - width of the image in px
-
+The returned current image object's fields are the same as the options of a
+`dirs` or `images` entry in [`bagman.setup()`](#bagman-setup-options), with two
+additional fields:
+1. `height` of the image in px
+2. `width` of the image in px
 ### `bagman.action.next_image()`
 _Alias for: `wezterm.action.EmitEvent("bagman.next-image")`_
 

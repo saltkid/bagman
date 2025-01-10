@@ -161,7 +161,6 @@
 
 -- generic background image. Difference with [BagmanCurrentImage] is that its
 -- dimensions (width, height) are not present
--- need to know what object fit an image has.
 ---@class BagmanImage
 ---@field horizontal_align HorizontalAlign
 -- valid values for its fields are from 0.0 to above
