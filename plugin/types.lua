@@ -81,6 +81,8 @@
 -- Holds the local config needed to determine how to change the background.
 -- should be READONLY and never changed after initial setup.
 ---@class BagmanConfig
+-- whether to auto cycle background images
+---@field auto_cycle boolean
 -- color layer below the image
 ---@field backdrop Backdrop
 -- whether to change tab bar colors based on the current background
@@ -97,7 +99,6 @@
 -- Holds the local state needed to determine whether to stop because of error
 -- or because of user input, keep looping, etc. MUTABLE
 ---@class BagmanState
----@field auto_cycle boolean
 -- amount of `next-image` retries. max of 5 till bagman stops trying
 ---@field retries number
 
