@@ -20,7 +20,6 @@ local default = {
 	interval = 30 * 60,
 	object_fit = "Contain",
 	opacity = 1.0,
-	scale = 1.0,
 	vertical_align = "Middle",
 }
 ---}}}
@@ -42,6 +41,12 @@ local bagman_data = {
 		-- image's opacity.
 		backdrop = default.backdrop,
 		change_tab_colors = default.change_tab_colors,
+		-- contains the experimental options of bagman that may be used by other
+		-- modules that may enable/change functionality.
+		-- all of the values set here must indicate to not use the feature, aka "off"
+		__experimental = {
+			contain_fix_wezterm_build = false,
+		},
 	},
 	state = {
 		-- Whether to immediately start changing bg image every <interval> seconds. You can trigger
@@ -90,6 +95,7 @@ local function images_in_dir(dir)
 		"*.dds",
 		"*.tga",
 		"*.farbfeld",
+		"*.ff",
 	}
 	local images = {}
 	for _, pattern in ipairs(image_types) do
@@ -106,14 +112,7 @@ end
 -- Will fail if there are no images found from both images in a dir and `bagman_data.config.images`
 ---@param dirs table<number, BagmanCleanDir> to get random images from a random dir in dirs
 ---@param more_images table<number, BagmanCleanImage> additional images to choose from
----@return string image path to image file
----@return VerticalAlign vertical_align
----@return HorizontalAlign horizontal_align
----@return f32 opacity
----@return Hsb hsb
----@return ObjectFit object_fit
----@return f32 scale
----@return boolean ok successful execution
+---@return BagmanImage? image image path with its properties
 local function random_image_from_dirs(dirs, more_images)
 	---@type table<number, string | BagmanCleanImage>
 	local images = {}
@@ -126,77 +125,26 @@ local function random_image_from_dirs(dirs, more_images)
 	table.move(more_images, 1, #more_images, #images + 1, images)
 	if #images == 0 then
 		wezterm.log_error("BAGMAN ERROR: no images given by user. Try checking the `dirs` and/or `images` setup option")
-		return "",
-			default.vertical_align,
-			default.horizontal_align,
-			default.opacity,
-			default.hsb,
-			default.object_fit,
-			default.scale,
-			false
+		return nil
 	end
 
 	local image = images[math.random(#images)]
-	return image.path or image,
-		image.vertical_align or dir.vertical_align or default.vertical_align,
-		image.horizontal_align or dir.horizontal_align or default.horizontal_align,
-		image.opacity or dir.opacity or default.opacity,
-		image.hsb or dir.hsb or default.hsb,
-		image.object_fit or dir.object_fit or default.object_fit,
-		image.scale or dir.scale or default.scale,
-		true
-end
-
----@param image string | BagmanCleanImage
----@param window_width number window's width in px (`window:get_dimensions().pixel_width`)
----@param window_height number window's height in px (`window:get_dimensions().pixel_height`)
----@param object_fit ObjectFit
----@return number width original image width
----@return number height original image height
----@return number scaled_width scaled image width
----@return number scaled_height scaled image height
----@return bool ok successful execution
-local function scale_image(image, window_width, window_height, object_fit)
-	local image_width, image_height, err = image_size.size(image.path or image)
-	if err then
-		wezterm.log_error("BAGMAN ERROR:", err)
-		return 0, 0, 0, 0, false
-	end
-
-	local scaled_width, scaled_height =
-		image_resizer.resize(image_width, image_height, window_width, window_height, image.object_fit or object_fit)
-	return image_width, image_height, scaled_width, scaled_height, true
+	return {
+		horizontal_align = image.horizontal_align or dir.horizontal_align or default.horizontal_align,
+		hsb = image.hsb or dir.hsb or default.hsb,
+		object_fit = image.object_fit or dir.object_fit or default.object_fit,
+		opacity = image.opacity or dir.opacity or default.opacity,
+		path = image.path or image,
+		vertical_align = image.vertical_align or dir.vertical_align or default.vertical_align,
+	}
 end
 
 -- Set the passed in image and metadata as the background image for the passed in window object.
 ---@param window Window used to change the background image
----@param image string path to image
----@param image_width number original image width
----@param image_height number original image height
----@param scaled_image_width number
----@param scaled_image_height number
----@param vertical_align string
----@param horizontal_align string
----@param opacity f32
----@param hsb Hsb,
----@param object_fit string for keeping track of object_fit state between window resizes
----@param scale f32
+---@param image BagmanImage image path with its properties
+---@param dims { original: ImageDimensions, scaled: ImageDimensions } original image dimensions
 ---@param colors? Palette tab line colorscheme
-local function set_bg_image(
-	window,
-	image,
-	image_width,
-	image_height,
-	scaled_image_width,
-	scaled_image_height,
-	vertical_align,
-	horizontal_align,
-	opacity,
-	hsb,
-	object_fit,
-	scale,
-	colors
-)
+local function set_bg_image(window, image, dims, colors)
 	local overrides = window:get_config_overrides() or {}
 	overrides.colors = colors or overrides.colors
 	overrides.background = {
@@ -210,14 +158,14 @@ local function set_bg_image(
 		},
 		{
 			source = {
-				File = image,
+				File = image.path,
 			},
-			opacity = opacity,
-			height = scaled_image_height * scale,
-			width = scaled_image_width * scale,
-			vertical_align = vertical_align,
-			horizontal_align = horizontal_align,
-			hsb = hsb,
+			opacity = image.opacity,
+			height = dims.scaled.height,
+			width = dims.scaled.width,
+			vertical_align = image.vertical_align,
+			horizontal_align = image.horizontal_align,
+			hsb = image.hsb,
 			repeat_x = "NoRepeat",
 			repeat_y = "NoRepeat",
 		},
@@ -269,7 +217,6 @@ function M.setup(opts)
 				object_fit = default.object_fit,
 				opacity = default.opacity,
 				path = dirty_dir,
-				scale = default.scale,
 				vertical_align = default.vertical_align,
 			}
 		else
@@ -279,7 +226,6 @@ function M.setup(opts)
 				object_fit = dirty_dir.object_fit or default.object_fit,
 				opacity = dirty_dir.opacity or default.opacity,
 				path = dirty_dir.path,
-				scale = dirty_dir.scale or default.scale,
 				vertical_align = dirty_dir.vertical_align or default.vertical_align,
 			}
 		end
@@ -300,7 +246,6 @@ function M.setup(opts)
 				object_fit = default.object_fit,
 				opacity = default.opacity,
 				path = dirty_image,
-				scale = default.scale,
 				vertical_align = default.vertical_align,
 			}
 		else
@@ -310,7 +255,6 @@ function M.setup(opts)
 				object_fit = dirty_image.object_fit or default.object_fit,
 				opacity = dirty_image.opacity or default.opacity,
 				path = dirty_image.path,
-				scale = dirty_image.scale or default.scale,
 				vertical_align = dirty_image.vertical_align or default.vertical_align,
 			}
 		end
@@ -333,6 +277,14 @@ function M.setup(opts)
 		}
 	end
 
+	-- clean experimental features
+	local clean_experimental = bagman_data.config.__experimental
+	if opts.experimental then
+		for k, v in pairs(opts.experimental or {}) do
+			clean_experimental[k] = v
+		end
+	end
+
 	-- setup config data with cleaned data
 	bagman_data.config = {
 		backdrop = clean_backdrop,
@@ -340,6 +292,7 @@ function M.setup(opts)
 		dirs = clean_dirs,
 		images = clean_images,
 		interval = opts.interval or default.interval,
+		__experimental = clean_experimental,
 	}
 	if opts.auto_cycle then
 		bagman_data.state.auto_cycle = true
@@ -359,7 +312,7 @@ function M.current_image()
 	return utils.table.deep_copy(wezterm.GLOBAL.bagman.current_image)
 end
 
--- Helper for ze autocomplete. Contains emitters equivalent to:
+-- Contains emitters equivalent to:
 -- ```lua
 -- require("wezterm").emit(--[["some-bagman-event", args if any]])
 -- ```
@@ -387,7 +340,7 @@ M.emit = {
 	end,
 }
 
--- Helper for ze autocomplete. Contains emitters equivalent to:
+-- Contains actions equivalent to:
 -- ```lua
 -- return require("wezterm").action.EmitEvent(--[["some-bagman-event"]])
 -- ```
@@ -434,18 +387,22 @@ wezterm.on("bagman.next-image", function(window)
 		return
 	end
 
-	local image, vertical_align, horizontal_align, opacity, hsb, object_fit, scale, ok =
-		random_image_from_dirs(bagman_data.config.dirs, bagman_data.config.images)
-	if not ok then
+	local image = random_image_from_dirs(bagman_data.config.dirs, bagman_data.config.images)
+	if not image then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
 	end
 
 	local window_dims = window:get_dimensions()
 	---@diagnostic disable-next-line: redefined-local
-	local image_width, image_height, scaled_image_width, scaled_image_height, ok =
-		scale_image(image, window_dims.pixel_width, window_dims.pixel_height, object_fit)
-	if not ok then
+	local image_dims = image_resizer.resize(
+		image.path,
+		window_dims.pixel_width,
+		window_dims.pixel_height,
+		image.object_fit,
+		bagman_data.config.__experimental.contain_fix_wezterm_build
+	)
+	if not image_dims then
 		bagman_data.state.retries = bagman_data.state.retries + 1
 		return M.emit.next_image(window)
 	end
@@ -458,54 +415,47 @@ wezterm.on("bagman.next-image", function(window)
 		}
 	end
 
-	set_bg_image(
-		window,
-		image,
-		image_width,
-		image_height,
-		scaled_image_width,
-		scaled_image_height,
-		vertical_align,
-		horizontal_align,
-		opacity,
-		hsb,
-		object_fit,
-		scale,
-		colors
-	)
+	set_bg_image(window, image, image_dims, colors)
 	bagman_data.state.retries = 0
 end)
 
 ---Sets a specific image as the background image with options to scale and position it
 ---@param window Window used to change the background image
----@param image string path to image file
+---@param image_path string path to image file
 ---@param opts? BagmanSetImageOptions options to scale and position image
-wezterm.on("bagman.set-image", function(window, image, opts)
+wezterm.on("bagman.set-image", function(window, image_path, opts)
 	opts = opts or {}
-	opts.horizontal_align = opts.horizontal_align or default.horizontal_align
-	opts.hsb = opts.hsb or default.hsb
-	opts.object_fit = opts.object_fit or default.object_fit
-	opts.opacity = opts.opacity or default.opacity
-	opts.vertical_align = opts.vertical_align or default.vertical_align
-	opts.scale = opts.scale or default.scale
+	local image = {
+		path = image_path,
+		horizontal_align = opts.horizontal_align or default.horizontal_align,
+		hsb = opts.hsb or default.hsb,
+		object_fit = opts.object_fit or default.object_fit,
+		opacity = opts.opacity or default.opacity,
+		vertical_align = opts.vertical_align or default.vertical_align,
+	}
 
-	local image_width, image_height = opts.width, opts.height
+	---@type { original: ImageDimensions, scaled: ImageDimensions }?
+	local image_dims
 	if not opts.width or not opts.height then
-		local err
-		image_width, image_height, err = image_size.size(image)
-		if err then
-			wezterm.log_error("BAGMAN ERROR:", err)
-			return
-		end
 		local window_dims = window:get_dimensions()
-		opts.width, opts.height = image_resizer.resize(
-			image_width,
-			image_height,
+		image_dims = image_resizer.resize(
+			image_path,
 			window_dims.pixel_width,
 			window_dims.pixel_height,
-			opts.object_fit
+			image.object_fit,
+			bagman_data.config.__experimental.contain_fix_wezterm_build
 		)
+		if not image_dims then
+			return
+		end
 	end
+	image_dims = image_dims
+		or {
+			width = opts.width,
+			height = opts.height,
+			scaled_width = opts.width,
+			scaled_height = opts.height,
+		}
 
 	local colors = nil
 	if bagman_data.config.change_tab_colors then
@@ -515,21 +465,7 @@ wezterm.on("bagman.set-image", function(window, image, opts)
 		}
 	end
 
-	set_bg_image(
-		window,
-		image,
-		image_width,
-		image_height,
-		opts.width,
-		opts.height,
-		opts.vertical_align,
-		opts.horizontal_align,
-		opts.opacity,
-		opts.hsb,
-		opts.object_fit,
-		opts.scale,
-		colors
-	)
+	set_bg_image(window, image, image_dims, colors)
 	bagman_data.state.retries = 0
 end)
 
@@ -538,15 +474,18 @@ end)
 wezterm.on("window-resized", function(window)
 	local overrides = window:get_config_overrides() or {}
 	local window_dims = window:get_dimensions()
-	local new_width, new_height = image_resizer.resize(
-		bagman_data.state.current_image.width,
-		bagman_data.state.current_image.height,
+	local dims = image_resizer.resize(
+		wezterm.GLOBAL.bagman.current_image.path,
 		window_dims.pixel_width,
 		window_dims.pixel_height,
-		bagman_data.state.current_image.object_fit
+		wezterm.GLOBAL.bagman.current_image.object_fit,
+		bagman_data.config.__experimental.contain_fix_wezterm_build
 	)
-	overrides.background[2].width = new_width * bagman_data.state.current_image.scale
-	overrides.background[2].height = new_height * bagman_data.state.current_image.scale
+	if not dims then
+		return
+	end
+	overrides.background[2].width = dims.scaled.width
+	overrides.background[2].height = dims.scaled.height
 	window:set_config_overrides(overrides)
 end)
 
