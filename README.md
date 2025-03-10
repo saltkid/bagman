@@ -12,6 +12,19 @@ might get too long if the image is too large.
 strategies for background images
 - optional changing of `tab_bar` colors based on the current background image
 
+## Demo
+*note: changing tab bar colors based on the background image is enabled*
+
+### change image every 3 seconds
+https://github.com/user-attachments/assets/2ef8d21e-b209-4845-8904-d946235540db
+
+see [setup options](#bagman-setup-options) for more info
+
+### manually changing image through a keybind
+https://github.com/user-attachments/assets/3220e507-dbc4-48af-9331-af6be870fbee
+
+see [`action.next_image`](#bagmanactionnext_image) for more info
+
 # Installation
 To conform with wezterm's current
 [plugin system](https://github.com/wez/wezterm/commit/e4ae8a844d8feaa43e1de34c5cc8b4f07ce525dd),
@@ -45,9 +58,9 @@ return config
 - [`apply_to_config(config)`](#bagmanapply_to_configconfig)
 - [`setup(opts)`](#bagmansetupopts)
 - [`current_image()`](#bagmancurrent_image)
-- [`action.next_image()`](#bagmanactionnext_image)
-- [`action.start_loop()`](#bagmanactionstart_loop)
-- [`action.stop_loop()`](#bagmanactionstop_loop)
+- [`action.next_image`](#bagmanactionnext_image)
+- [`action.start_loop`](#bagmanactionstart_loop)
+- [`action.stop_loop`](#bagmanactionstop_loop)
 - [`emit.next_image(window)`](#bagmanemitnext_imagewindow)
 - [`emit.set_image(window, image, opts)`](#bagmanemitset_imagewindow-image-opts)
 - [`emit.start_loop(window)`](#bagmanemitstart_loopwindow)
@@ -159,12 +172,13 @@ The returned current image object's fields are the same as the options of a
 additional fields:
 1. `height` of the image in px
 2. `width` of the image in px
-### `bagman.action.next_image()`
+### `bagman.action.next_image`
 _Alias for: `wezterm.action.EmitEvent("bagman.next-image")`_
 
 Changes the background image to a random image based on setup options. Random
-images are chosen from a images in a random dir in `dirs` setup option
-along with the `images` option
+images are chosen from the `images` setup option, and images in a random dir in
+`dirs` setup option
+
 
 Example: change bg image through a keybind
 ```lua
@@ -177,7 +191,7 @@ config.keys = {
     },
 },
 ```
-### `bagman.action.start_loop()`
+### `bagman.action.start_loop`
 _Alias for: `wezterm.action.EmitEvent("bagman.start-loop")`_
 
 Starts the auto cycle bg images loop at every user set interval. Only one loop
@@ -195,7 +209,7 @@ bagman.setup({
 See [`bagman.action.next_image()`](#bagman.action.next_image()) for an example
 on how to use a bagman action with a keybind.
 
-### `bagman.action.stop_loop()`
+### `bagman.action.stop_loop`
 _Alias for: `wezterm.action.EmitEvent("bagman.stop-loop")`_
 
 Stops the current auto cycle bg images loop. Does nothing if there are no loops
