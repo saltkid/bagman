@@ -191,20 +191,21 @@ end
 -- going on.
 --
 -- Details.
--- in config, manually triggered
---   true, true => loop
---   false, true => loop since manually triggered
---   true, nil => loop since its in config
---   false, false => stop loop
---   true, false => stop loop since manually triggered
---   false, nil => stop loop since its in config
+-- | in config | manually triggered | action                             |
+-- |-----------|--------------------|------------------------------------|
+-- | true      | true               | loop                               |
+-- | false     | true               | loop since manually triggered      |
+-- | true      | false              | stop loop since manually triggered |
+-- | false     | false              | stop loop                          |
+-- | true      | nil                | loop since its in config           |
+-- | false     | nil                | stop loop since its in config      |
 ---@return boolean stop whether to stop cycle
 local function is_cycling()
-    return wezterm.GLOBAL.bagman.manually_cycle
-        or (
-            wezterm.GLOBAL.bagman.manually_cycle == nil
-            and bagman_data.config.auto_cycle
-        )
+    if wezterm.GLOBAL.bagman.manually_cycle == nil then
+        return bagman_data.config.auto_cycle
+    else
+        return wezterm.GLOBAL.bagman.manually_cycle
+    end
 end
 
 -- END PRIVATE FUNCTIONS }}}
@@ -395,6 +396,9 @@ wezterm.on("window-config-reloaded", function(window)
         return
     end
     if wezterm.GLOBAL.bagman.current_image then
+        if wezterm.GLOBAL.bagman.call_after then
+            return
+        end
         wezterm.time.call_after(bagman_data.config.interval, function()
             -- if the loop is stopped before this task is called and only now
             -- is it executing.
@@ -402,7 +406,9 @@ wezterm.on("window-config-reloaded", function(window)
                 return
             end
             M.emit.next_image(window)
+            wezterm.GLOBAL.bagman.call_after = false
         end)
+        wezterm.GLOBAL.bagman.call_after = true
     else
         M.emit.next_image(window)
     end
