@@ -66,9 +66,12 @@ return config
 - [`emit.start_loop(window)`](#bagmanemitstart_loopwindow)
 - [`emit.stop_loop(window)`](#bagmanemitstop_loopwindow)
 
+---
 ### `bagman.apply_to_config(config)`
 bagman only registers event listeners so `bagman.apply_to_config(config)` does
 nothing for now.
+
+---
 ### `bagman.setup(opts)`
 Here is a sample setup with all options:
 ```lua
@@ -145,7 +148,7 @@ options defined for that specific path.
 - Its options are the same as a `dirs` entry's but `path` referes to a path
 to an image file instead.
 3. `auto_cycle`
-- Whether to immediately start changing bg image every <interval> seconds on
+- Whether to immediately start changing bg image every *interval* seconds on
 startup.
 - default: `true`
 4. `backdrop`
@@ -162,6 +165,8 @@ number from 0.0 to 1.0
 - Interval in seconds on when to trigger a background image change.
 - default: `30 * 60`
 
+
+---
 ### `bagman.current_image()`
 Returns the latest background image set by bagman, along with its options. Note
 that this is readonly and even if the return value's fields are reassigned, it
@@ -172,6 +177,8 @@ The returned current image object's fields are the same as the options of a
 additional fields:
 1. `height` of the image in px
 2. `width` of the image in px
+
+---
 ### `bagman.action.next_image`
 _Alias for: `wezterm.action.EmitEvent("bagman.next-image")`_
 
@@ -191,6 +198,8 @@ config.keys = {
     },
 },
 ```
+
+---
 ### `bagman.action.start_loop`
 _Alias for: `wezterm.action.EmitEvent("bagman.start-loop")`_
 
@@ -209,6 +218,7 @@ bagman.setup({
 See [`bagman.action.next_image()`](#bagman.action.next_image()) for an example
 on how to use a bagman action with a keybind.
 
+---
 ### `bagman.action.stop_loop`
 _Alias for: `wezterm.action.EmitEvent("bagman.stop-loop")`_
 
@@ -218,6 +228,7 @@ currently running.
 See [`bagman.action.next_image()`](#bagman.action.next_image()) for an example
 on how to use a bagman action with a keybind.
 
+---
 ### `bagman.emit.next_image(window)`
 _Alias for: `wezterm.emit("bagman.next-image", window)`_
 
@@ -233,6 +244,7 @@ wezterm.on("new-tab-button-click", function(window, pane)
 end)
 ```
 
+---
 ### `bagman.emit.set_image(window, image, opts)`
 _Alias for: `wezterm.emit("bagman.set-image", window, "/path/to/image", {})`_
 
@@ -277,6 +289,7 @@ wezterm.on("bell", function(window, pane)
 end)
 ```
 
+---
 ### `bagman.emit.start_loop(window)`
 _Alias for: `wezterm.emit("bagman.start-loop", window)`_
 
@@ -293,6 +306,7 @@ bagman.setup({
 })
 ```
 
+---
 ### `bagman.emit.stop_loop(window)`
 _Alias for: `wezterm.emit("bagman.stop-loop", window)`_
 
