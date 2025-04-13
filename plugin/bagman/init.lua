@@ -63,6 +63,9 @@ local bagman_data = {
         -- error is encountered. Should only be incremented and reset in the
         -- 'bagman.next-image' event handler.
         retries = 0,
+        -- currently set colorscheme by user (thru wezterm config) or bagman (thru
+        -- changing image)
+        current_colorscheme = nil,
     },
 }
 
@@ -140,16 +143,40 @@ local function random_image_from_dirs(dirs, more_images)
     }
 end
 
+-- Gets the tab bar colors based on the value of
+-- bagman_data.config.change_tab_colors. Just returns the current tab_bar colors
+-- if bagman_data.config.change_tab_colors is false
+---@param window Window used to get the effective config colors
+---@param image string | { path: string, speed: number } path to image file
+---return TabBar tab_bar_colors
+local function get_tab_colors(window, image)
+    if bagman_data.config.change_tab_colors then
+        ---@type TabBar
+        return colorscheme_builder.build_tab_bar_colorscheme_from_image(image)
+    else
+        if not bagman_data.state.current_colorscheme then
+            bagman_data.state.current_colorscheme = window:effective_config().colors
+                or {}
+        end
+        return bagman_data.state.current_colorscheme.tab_bar or {}
+    end
+end
+
 -- Set the passed in image and metadata as the background image for the passed
 -- in window object.
 ---@param window Window used to change the background image
 ---@param image BagmanImage image path with its properties
 ---@param dims { original: ImageDimensions, scaled: ImageDimensions } original
--- image dimensions
----@param colors? Palette tab line colorscheme
-local function set_bg_image(window, image, dims, colors)
+-- and scaled image dimensions
+local function set_bg_image(window, image, dims)
+    if not bagman_data.state.current_colorscheme then
+        bagman_data.state.current_colorscheme = window:effective_config().colors
+    end
     local overrides = window:get_config_overrides() or {}
-    overrides.colors = colors or overrides.colors
+    overrides.colors = bagman_data.state.current_colorscheme or {}
+    overrides.colors.tab_bar = get_tab_colors(window, image)
+        or bagman_data.state.current_colorscheme.tab_bar
+        or {}
     overrides.background = {
         {
             source = {
@@ -467,17 +494,7 @@ wezterm.on("bagman.next-image", function(window)
         return M.emit.next_image(window)
     end
 
-    local colors = nil
-    if bagman_data.config.change_tab_colors then
-        ---@type Palette
-        colors = {
-            tab_bar = colorscheme_builder.build_tab_bar_colorscheme_from_image(
-                image
-            ),
-        }
-    end
-
-    set_bg_image(window, image, image_dims, colors)
+    set_bg_image(window, image, image_dims)
     bagman_data.state.retries = 0
 end)
 
@@ -519,17 +536,7 @@ wezterm.on("bagman.set-image", function(window, image_path, opts)
             scaled_height = opts.height,
         }
 
-    local colors = nil
-    if bagman_data.config.change_tab_colors then
-        ---@type Palette
-        colors = {
-            tab_bar = colorscheme_builder.build_tab_bar_colorscheme_from_image(
-                image
-            ),
-        }
-    end
-
-    set_bg_image(window, image, image_dims, colors)
+    set_bg_image(window, image, image_dims)
     bagman_data.state.retries = 0
 end)
 

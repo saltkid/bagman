@@ -101,6 +101,9 @@
 ---@class BagmanState
 -- amount of `next-image` retries. max of 5 till bagman stops trying
 ---@field retries number
+-- currently set colorscheme by user (thru wezterm config) or bagman (thru
+-- changing image)
+---@field current_colorscheme Palette?
 
 -- }}}
 
